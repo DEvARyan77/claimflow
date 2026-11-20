@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /** The few patient fields the claims rules need (extra fields in the JSON are ignored). */
 @Data
@@ -16,4 +17,6 @@ public class PatientDto {
     private Boolean policyActive;
     private BigDecimal coverageLimit;
     private BigDecimal usedAmount;
+    private LocalDate policyStartDate;
+    private String policyNumber;
 }

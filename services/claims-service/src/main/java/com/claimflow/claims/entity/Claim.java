@@ -10,11 +10,15 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /** A claim, stored in the "claims" collection of claims_db. */
 @Document("claims")
-@CompoundIndex(name = "status_createdAt", def = "{'status': 1, 'createdAt': 1}") // retry job: SUBMITTED + older than
+@CompoundIndex(name = "status_createdAt", def = "{'status': 1, 'createdAt': 1}") // retry job + review queue
+@CompoundIndex(name = "provider_createdAt", def = "{'providerId': 1, 'createdAt': -1}") // hospital's claims
 @Data
 @NoArgsConstructor
 public class Claim {
@@ -46,6 +50,26 @@ public class Claim {
     private String paymentReference;
 
     private String extraEmail;         // optional: a second address that also gets every update
+
+    /** REIMBURSEMENT = policyholder paid and claims back; CASHLESS = hospital claims directly. */
+    private ClaimType type;
+
+    private String treatment;          // readable name of the diagnosis, e.g. "Heart attack"
+    private LocalDate admissionDate;
+    private LocalDate dischargeDate;
+
+    // Who submitted it (from the gateway's X-User headers)
+    private String submittedByUserId;
+    private String submittedByRole;
+    private String submittedByName;
+
+    private FraudAssessment fraud;
+
+    /** Officer decisions, requests for information and replies, oldest first. */
+    private List<ReviewNote> reviewNotes = new ArrayList<>();
+
+    /** Set while an officer's approval is being processed, so two officers can't approve it twice. */
+    private Boolean reviewLock;
 
     private LocalDateTime createdAt;
     private LocalDateTime decidedAt;

@@ -4,8 +4,6 @@ import com.claimflow.claims.client.PatientDto;
 import com.claimflow.claims.client.ProviderDto;
 
 import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -37,7 +35,7 @@ public final class ClaimRules {
         // Rule 3: enough coverage left for this amount
         BigDecimal remaining = remainingCoverage(patient);
         if (amount.compareTo(remaining) > 0) {
-            return Optional.of("Coverage limit exceeded (remaining ₹" + format(remaining) + ")");
+            return Optional.of("Coverage limit exceeded (remaining " + FraudRules.inr(remaining) + ")");
         }
 
         return Optional.empty();
@@ -47,11 +45,5 @@ public final class ClaimRules {
         BigDecimal limit = patient.getCoverageLimit() == null ? BigDecimal.ZERO : patient.getCoverageLimit();
         BigDecimal used = patient.getUsedAmount() == null ? BigDecimal.ZERO : patient.getUsedAmount();
         return limit.subtract(used);
-    }
-
-    private static String format(BigDecimal value) {
-        NumberFormat format = NumberFormat.getNumberInstance(Locale.of("en", "IN"));
-        format.setMaximumFractionDigits(2);
-        return format.format(value);
     }
 }

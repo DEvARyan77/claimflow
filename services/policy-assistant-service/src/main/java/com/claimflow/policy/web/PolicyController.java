@@ -6,6 +6,7 @@ import com.claimflow.policy.dto.Dtos.AskRequest;
 import com.claimflow.policy.dto.Dtos.AssistantStatus;
 import com.claimflow.policy.dto.Dtos.DocumentSummary;
 import com.claimflow.policy.dto.Dtos.PrecheckRequest;
+import com.claimflow.policy.fraud.FraudReviewer;
 import com.claimflow.policy.profile.ProfileExtractor;
 import com.claimflow.policy.rag.PolicyAssistantService;
 import com.claimflow.policy.rag.PolicyIngestionService;
@@ -32,6 +33,7 @@ public class PolicyController {
     private final PolicyAssistantService assistantService;
     private final AiSettings aiSettings;
     private final ProfileExtractor profileExtractor;
+    private final FraudReviewer fraudReviewer;
 
     @GetMapping
     public List<DocumentSummary> list() {
@@ -101,5 +103,11 @@ public class PolicyController {
                 repository.countDocuments(),
                 repository.countChunks(),
                 aiSettings.isEnabled() ? repository.countChunksWithoutModelEmbedding(aiSettings.getEmbeddingModel()) : 0);
+    }
+
+    /** Internal (claims-service): explains a flagged claim for the officer. Blocked at the gateway. */
+    @PostMapping("/fraud-review")
+    public FraudReviewer.Review fraudReview(@RequestBody FraudReviewer.Request request) {
+        return fraudReviewer.review(request);
     }
 }
