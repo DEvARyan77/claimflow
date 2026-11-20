@@ -33,11 +33,12 @@ const EMAILS_PER_DAY = Number(env.EMAILS_PER_DAY || 50); // for everyone togethe
 const aiEnabled = Boolean(GEMINI_API_KEY);
 const emailEnabled = Boolean(BREVO_API_KEY && MAIL_FROM);
 
-/** "claimflow-demo-x.onrender.com" (what Render gives) → "https://claimflow-demo-x.onrender.com" */
+/** "claimflow-demo-x" (what Render gives) → "https://claimflow-demo-x.onrender.com" */
 function siteUrl(value) {
   const v = value.trim().replace(/\/$/, '');
   if (!v) return '';
-  return /^https?:\/\//.test(v) ? v : `https://${v}`;
+  if (/^https?:\/\//.test(v)) return v;
+  return `https://${v.includes('.') ? v : `${v}.onrender.com`}`; // Render gives just the service name
 }
 
 const allowedOrigins = new Set(
