@@ -9,6 +9,7 @@ import FilePicker from '../components/FilePicker.jsx';
 import { toast } from '../toast.jsx';
 import { useSmoothWheel } from '../smoothScroll.js';
 import { IS_DEMO, resetDemoData } from '../demo/isDemo.js';
+import { useMediaQuery } from '../useMediaQuery.js';
 
 const FILTERS = [
   { id: 'all', label: 'All', test: () => true },
@@ -50,6 +51,8 @@ export default function ChoosePatient() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('name');
+  const isPhone = useMediaQuery('(max-width: 899px)');
+  const [tab, setTab] = useState('pick'); // phones show one card at a time: 'pick' or 'new'
   const listRef = useRef(null);
   useSmoothWheel(listRef);
 
@@ -77,8 +80,18 @@ export default function ChoosePatient() {
   return (
     <main className="welcome">
       <ThemeToggle className="welcome-theme" />
-      <div className="welcome-grid">
-        <div className="welcome-card card">
+      <div className={`welcome-grid${isPhone ? ` show-${tab}` : ''}`}>
+        {isPhone && (
+          <div className="welcome-tabs" role="tablist" aria-label="Choose how to start">
+            <button type="button" role="tab" id="tab-pick" aria-selected={tab === 'pick'} aria-controls="panel-pick" onClick={() => setTab('pick')}>
+              Pick a patient
+            </button>
+            <button type="button" role="tab" id="tab-new" aria-selected={tab === 'new'} aria-controls="panel-new" onClick={() => setTab('new')}>
+              New from policy
+            </button>
+          </div>
+        )}
+        <div className="welcome-card card" id="panel-pick" role={isPhone ? 'tabpanel' : undefined} aria-labelledby={isPhone ? 'tab-pick' : undefined}>
           <div className="brand brand-large">
             <LogoMark size={40} />
             <span>ClaimFlow</span>
@@ -197,7 +210,7 @@ export default function ChoosePatient() {
           </ul>
         </div>
 
-        <SetupFromPolicy onCreated={choose} />
+        <SetupFromPolicy onCreated={choose} tabbed={isPhone} />
       </div>
     </main>
   );
@@ -207,7 +220,7 @@ const EMPTY = { name: '', email: '', phone: '', policyNumber: '', coverageLimit:
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** "Auto-pickup": upload a policy PDF or photo → AI fills in the profile → check it → create. */
-function SetupFromPolicy({ onCreated }) {
+function SetupFromPolicy({ onCreated, tabbed }) {
   const [file, setFile] = useState(null);
   const [reading, setReading] = useState(false);
   const [extracted, setExtracted] = useState(null);
@@ -290,7 +303,12 @@ function SetupFromPolicy({ onCreated }) {
   };
 
   return (
-    <section className="card setup-card" aria-labelledby="setup-title">
+    <section
+      className="card setup-card"
+      id="panel-new"
+      role={tabbed ? 'tabpanel' : undefined}
+      aria-labelledby={tabbed ? 'tab-new' : 'setup-title'}
+    >
       <span className="pill pill-approved">New · AI</span>
       <h2 id="setup-title" className="setup-title">
         Set up from your policy
