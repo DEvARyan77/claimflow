@@ -22,16 +22,14 @@ export default function MyClaims() {
   const lastStatuses = useRef(null);
   const seenMessages = useRef(null);
   const mainRef = useRef(null);
-  const sideRef = useRef(null);
   const listRef = useRef(null);
 
-  // Pick a claim from the list: on phones the details sit above the list, so glide up to them
+  // Pick a claim from the list: on phones the list sits above the details, so glide down to them
   const pick = (id) => {
     setSelectedId(id);
     const main = mainRef.current;
-    const side = sideRef.current;
-    if (main && side && side.offsetTop > main.offsetTop + 20) {
-      const top = main.getBoundingClientRect().top + window.scrollY - 76;
+    if (main && window.matchMedia('(max-width: 899px)').matches) {
+      const top = main.getBoundingClientRect().top + window.scrollY - 12;
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
   };
@@ -94,7 +92,7 @@ export default function MyClaims() {
 
   return (
     <div className="stack-lg">
-      <div className="hero">
+      <div className="hero claims-hero">
         <section className="hero-main" aria-live="polite" ref={mainRef}>
           {claims === null && <p className="muted">Loading your claims…</p>}
 
@@ -127,7 +125,7 @@ export default function MyClaims() {
           )}
         </section>
 
-        <aside className="hero-side" ref={sideRef}>
+        <aside className="hero-side">
           {claims && claims.length > 0 && (
             <section className="card claims-picker" aria-labelledby="your-claims">
               <div className="row-between">
