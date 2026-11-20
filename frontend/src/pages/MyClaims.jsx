@@ -21,6 +21,20 @@ export default function MyClaims() {
   // Remember what we've already seen, so a change shows a pop-up exactly once
   const lastStatuses = useRef(null);
   const seenMessages = useRef(null);
+  const mainRef = useRef(null);
+  const sideRef = useRef(null);
+  const listRef = useRef(null);
+
+  // Pick a claim from the list: on phones the details sit above the list, so glide up to them
+  const pick = (id) => {
+    setSelectedId(id);
+    const main = mainRef.current;
+    const side = sideRef.current;
+    if (main && side && side.offsetTop > main.offsetTop + 20) {
+      const top = main.getBoundingClientRect().top + window.scrollY - 76;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
 
   const load = useCallback(async (quiet = false) => {
     try {
@@ -81,7 +95,7 @@ export default function MyClaims() {
   return (
     <div className="stack-lg">
       <div className="hero">
-        <section className="hero-main" aria-live="polite">
+        <section className="hero-main" aria-live="polite" ref={mainRef}>
           {claims === null && <p className="muted">Loading your claims…</p>}
 
           {claims && !selected && (
@@ -113,7 +127,40 @@ export default function MyClaims() {
           )}
         </section>
 
-        <aside className="hero-side">
+        <aside className="hero-side" ref={sideRef}>
+          {claims && claims.length > 0 && (
+            <section className="card claims-picker" aria-labelledby="your-claims">
+              <div className="row-between">
+                <h2 id="your-claims" className="card-title">
+                  Your claims
+                </h2>
+                <span className="muted small">{claims.length === 1 ? '1 claim' : `${claims.length} claims`}</span>
+              </div>
+              <div className="claim-list" ref={listRef}>
+                {claims.map((claim) => (
+                  <button
+                    type="button"
+                    key={claim.id}
+                    className={`claim-row${selected?.id === claim.id ? ' is-selected' : ''}`}
+                    onClick={() => pick(claim.id)}
+                    aria-pressed={selected?.id === claim.id}
+                  >
+                    <span className="claim-row-main">
+                      <span className="claim-row-title">
+                        Claim #{claim.id} · {providerName(claim.providerId)}
+                      </span>
+                      <span className="claim-row-detail">{detailLine(claim)}</span>
+                    </span>
+                    <span className="claim-row-side">
+                      <span className="claim-row-amount">{formatINR(claim.amount)}</span>
+                      <StatusPill status={claim.status} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="card coverage-card">
             <div className="row-between">
               <h2 className="card-title">Your coverage · {patient.policyNumber}</h2>
@@ -150,35 +197,6 @@ export default function MyClaims() {
         </aside>
       </div>
 
-      {claims && claims.length > 0 && (
-        <section className="stack-md" aria-labelledby="your-claims">
-          <div className="row-between">
-            <h2 id="your-claims" className="section-title">
-              Your claims
-            </h2>
-            <span className="muted small">Select a claim to track it</span>
-          </div>
-          <div className="claim-grid">
-            {claims.map((claim) => (
-              <button
-                type="button"
-                key={claim.id}
-                className={`card claim-card${selected?.id === claim.id ? ' is-selected' : ''}`}
-                onClick={() => setSelectedId(claim.id)}
-                aria-pressed={selected?.id === claim.id}
-              >
-                <span className="row-between">
-                  <span className="claim-card-id">Claim #{claim.id}</span>
-                  <StatusPill status={claim.status} />
-                </span>
-                <span className="claim-card-amount">{formatINR(claim.amount)}</span>
-                <span className="claim-card-provider">{providerName(claim.providerId)}</span>
-                <span className="claim-card-detail">{detailLine(claim)}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
