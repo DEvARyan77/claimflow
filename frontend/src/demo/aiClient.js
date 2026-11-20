@@ -5,7 +5,9 @@
  * and uses prepared answers until it is awake.
  */
 const HOST = (import.meta.env.VITE_API_HOST || import.meta.env.VITE_API_URL || '').trim();
-export const API_URL = HOST ? (/^https?:\/\//.test(HOST) ? HOST : `https://${HOST}`).replace(/\/$/, '') : '';
+// Render passes just the service name ("claimflow-api-x"), so add the domain when it's missing
+const withDomain = (h) => (h.includes('.') ? h : `${h}.onrender.com`);
+export const API_URL = HOST ? (/^https?:\/\//.test(HOST) ? HOST : `https://${withDomain(HOST)}`).replace(/\/$/, '') : '';
 
 let health = null; // { ok, ai, email, model } once the server has answered
 let waking = null;
