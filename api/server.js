@@ -15,12 +15,13 @@ import http from 'node:http';
 // ---------- Settings (Render → Environment) ----------
 const env = process.env;
 const PORT = Number(env.PORT || 8787);
-const GEMINI_API_KEY = (env.GEMINI_API_KEY || '').trim();
+const cleanKey = (v) => String(v || '').trim().replace(/^["']|["']$/g, '').trim(); // forgive pasted quotes
+const GEMINI_API_KEY = cleanKey(env.GEMINI_API_KEY);
 const GEMINI_BASE_URL = (env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai').replace(/\/$/, '');
 const GEMINI_MODEL = env.GEMINI_MODEL || 'gemini-3.5-flash-lite'; // free tier: about 500 requests a day
 const GEMINI_FALLBACK_MODEL = env.GEMINI_FALLBACK_MODEL ?? 'gemini-3.8-flash';
 const GEMINI_REASONING = env.GEMINI_REASONING_EFFORT ?? 'low';
-const BREVO_API_KEY = (env.BREVO_API_KEY || '').trim();
+const BREVO_API_KEY = cleanKey(env.BREVO_API_KEY);
 const BREVO_BASE_URL = (env.BREVO_BASE_URL || 'https://api.brevo.com').replace(/\/$/, '');
 const MAIL_FROM = (env.MAIL_FROM || '').trim();
 const MAIL_FROM_NAME = env.MAIL_FROM_NAME || 'ClaimFlow';
@@ -113,6 +114,9 @@ async function geminiChat(messages, { temperature = 0.2 } = {}) {
       if ([500, 502, 503, 504].includes(res.status) && attempt < 3) {
         await sleep(attempt === 1 ? 1500 : 4000); // busy ("high demand"): wait and retry
         continue;
+      }
+      if ([400, 401, 403].includes(res.status) && /api key|permission|unauthenticated/i.test(detail)) {
+        throw new AiError(401, `Gemini rejected the API key: ${detail.slice(0, 120)}`); // the backup model would fail too
       }
       break; // 429 (quota) or other: try the backup model
     }
@@ -400,7 +404,7 @@ export const server = http.createServer(async (req, res) => {
     const body = req.method === 'POST' ? await readBody(req) : {};
     send(res, 200, await handler(body, ip), origin);
   } catch (e) {
-    const status = e instanceof HttpError ? e.status : e instanceof AiError ? (e.status === 429 ? 429 : 502) : 500;
+    const status = e instanceof HttpError ? e.status : e instanceof AiError ? (e.status === 429 || e.status === 401 ? e.status : 502) : 500;
     if (!(e instanceof HttpError)) console.error(`[${path}]`, e.message);
     const message =
       e instanceof HttpError
@@ -408,7 +412,9 @@ export const server = http.createServer(async (req, res) => {
         : e instanceof AiError
           ? e.status === 429
             ? "The AI's free limit is used up for now. Try again later."
-            : 'The AI is busy right now. Try again in a minute.'
+            : e.status === 401
+              ? 'the Gemini API key on the server is not valid'
+              : 'The AI is busy right now. Try again in a minute.'
           : 'Something went wrong.';
     send(res, status, { message }, origin);
   }
