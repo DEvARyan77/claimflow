@@ -30,6 +30,22 @@ public class RabbitConfig {
     }
 
     @Bean
+    public TopicExchange accountExchange() {
+        return new TopicExchange(Messaging.ACCOUNT_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public Queue accountNotificationQueue() {
+        return new Queue(Messaging.ACCOUNT_NOTIFICATION_QUEUE, true);
+    }
+
+    @Bean
+    public Binding accountBinding(Queue accountNotificationQueue, TopicExchange accountExchange) {
+        // "account.*" = welcome, staff account created, password reset / changed
+        return BindingBuilder.bind(accountNotificationQueue).to(accountExchange).with(Messaging.ALL_ACCOUNT_EVENTS);
+    }
+
+    @Bean
     public MessageConverter jsonMessageConverter() {
         return new JacksonJsonMessageConverter();
     }

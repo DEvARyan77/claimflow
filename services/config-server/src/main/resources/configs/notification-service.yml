@@ -12,7 +12,7 @@ spring:
           enabled: true
           max-attempts: 3
           initial-interval: 1s
-  # Real email over SMTP. Gmail: MAIL_USERNAME = your Gmail address, MAIL_PASSWORD = a 16-letter app password
+  # Or real email over SMTP. Gmail: MAIL_USERNAME = your Gmail address, MAIL_PASSWORD = a 16-letter app password
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -30,7 +30,10 @@ spring:
 
 claimflow:
   email:
+    # Brevo HTTP API (preferred: works where SMTP ports are blocked, e.g. Render). Needs a verified MAIL_FROM.
+    brevo-api-key: ${BREVO_API_KEY:}
     from: ${MAIL_FROM:}                     # empty = same as MAIL_USERNAME
+    from-name: ${MAIL_FROM_NAME:ClaimFlow}
     override-to: ${NOTIFY_EMAIL_OVERRIDE:}  # send EVERY email here (useful for the demo patients)
     app-url: ${APP_URL:http://localhost:3000}
 

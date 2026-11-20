@@ -2,26 +2,27 @@ package com.claimflow.notification.service;
 
 import com.claimflow.events.ClaimEvent;
 import com.claimflow.events.Messaging;
+import com.claimflow.notification.client.AuthClient;
 import com.claimflow.notification.client.PatientClient;
 import com.claimflow.notification.client.PatientClient.PatientContact;
 import com.claimflow.notification.entity.Notification;
 import com.claimflow.notification.repository.NotificationRepository;
+import com.claimflow.notification.service.EmailSender.Mail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.text.NumberFormat;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Runs automatically for every message in notification.queue:
- * saves the message (shown in the app) and, when email is set up, emails the patient.
+ * saves the message (shown in the app) and, when email is set up, emails the policyholder
+ * (their login email + alternate email, plus the extra address typed on the claim).
  */
 @Slf4j
 @Component
@@ -31,6 +32,7 @@ public class NotificationListener {
     private final NotificationRepository notificationRepository;
     private final EmailSender emailSender;
     private final PatientClient patientClient;
+    private final AuthClient authClient;
 
     @RabbitListener(queues = Messaging.NOTIFICATION_QUEUE)
     public void onClaimEvent(ClaimEvent event) {
@@ -56,22 +58,29 @@ public class NotificationListener {
 
     /** An email problem must never lose the in-app message, so every failure is caught here. */
     private void sendEmail(ClaimEvent event, String message, Notification notification) {
-        PatientContact patient = null;
+        String email = null, alternate = null, name = null;
         try {
-            patient = patientClient.getPatient(event.patientId());
+            AuthClient.Account account = authClient.accountForPatient(event.patientId());
+            email = account.email();
+            alternate = account.alternateEmail();
+            name = account.name();
         } catch (Exception e) {
-            log.warn("Couldn't look up patient {}: {}", event.patientId(), e.getMessage());
+            // no login account yet (or auth is down): use the email on the policy
+            try {
+                PatientContact patient = patientClient.getPatient(event.patientId());
+                email = patient.email();
+                name = patient.name();
+            } catch (Exception e2) {
+                log.warn("Couldn't look up patient {}: {}", event.patientId(), e2.getMessage());
+            }
         }
-        String to = emailSender.recipientFor(patient == null ? null : patient.email());
-        String extra = emailSender.extraRecipient(event.extraEmail(), to);
-        String name = patient == null ? null : patient.name();
 
         List<String> sentTo = new ArrayList<>();
         boolean failed = false;
-        for (String address : Arrays.asList(to, extra)) {
-            if (address == null) continue;
+        for (String address : emailSender.recipients(email, alternate, event.extraEmail())) {
             try {
-                emailSender.send(address, name, subject(event), headline(event), message, event.status());
+                emailSender.send(new Mail(address, name, subject(event), headline(event), message, tone(event.status()),
+                        "Track your claim", emailSender.appUrl() + "/claims/" + event.claimId()));
                 sentTo.add(address);
             } catch (Exception e) {
                 log.warn("Email to {} failed: {}", address, e.getMessage());
@@ -89,9 +98,13 @@ public class NotificationListener {
 
     static String buildMessage(ClaimEvent event) {
         String claim = "claim " + number(event);
-        String amount = "₹" + format(event.amount());
+        String amount = inr(event.amount());
         return switch (event.status()) {
             case "SUBMITTED" -> "We received your " + claim + " of " + amount + ". Verification will finish shortly.";
+            case "UNDER_REVIEW" -> "Your " + claim + " of " + amount + " is with our claims team for a quick review. "
+                    + "We'll let you know as soon as it's decided.";
+            case "INFO_REQUESTED" -> "We need a little more information for your " + claim + ". "
+                    + strip(event.reason(), "More information needed: ") + " Please reply from the claim page.";
             case "APPROVED" -> "Good news! Your " + claim + " of " + amount + " is approved. We're paying the hospital now.";
             case "REJECTED" -> "Your " + claim + " of " + amount + " was not approved. Reason: " + event.reason() + ".";
             case "PAID" -> amount + " for " + claim + " has been paid to the hospital. Nothing more to do.";
@@ -102,6 +115,8 @@ public class NotificationListener {
     private static String subject(ClaimEvent event) {
         return switch (event.status()) {
             case "SUBMITTED" -> "We received your claim " + number(event);
+            case "UNDER_REVIEW" -> "Claim " + number(event) + " is being reviewed";
+            case "INFO_REQUESTED" -> "Action needed: claim " + number(event);
             case "APPROVED" -> "Claim " + number(event) + " approved";
             case "REJECTED" -> "Claim " + number(event) + " was not approved";
             case "PAID" -> "Claim " + number(event) + " paid to the hospital";
@@ -112,10 +127,21 @@ public class NotificationListener {
     private static String headline(ClaimEvent event) {
         return switch (event.status()) {
             case "SUBMITTED" -> "Claim received";
+            case "UNDER_REVIEW" -> "Claim under review";
+            case "INFO_REQUESTED" -> "More information needed";
             case "APPROVED" -> "Claim approved";
             case "REJECTED" -> "Claim not approved";
             case "PAID" -> "Hospital paid";
             default -> "Claim update";
+        };
+    }
+
+    private static String tone(String status) {
+        return switch (status) {
+            case "APPROVED", "PAID" -> "good";
+            case "REJECTED" -> "bad";
+            case "INFO_REQUESTED" -> "warn";
+            default -> "info";
         };
     }
 
@@ -124,12 +150,24 @@ public class NotificationListener {
         return event.claimNumber() != null ? event.claimNumber() : "#" + event.claimId();
     }
 
-    private static String format(BigDecimal value) {
-        if (value == null) {
-            return "0";
+    private static String strip(String text, String prefix) {
+        if (text == null) return "";
+        String t = text.startsWith(prefix) ? text.substring(prefix.length()) : text;
+        return t.endsWith(".") ? t : t + ".";
+    }
+
+    /** ₹ with Indian digit grouping: 450000 → ₹4,50,000 */
+    static String inr(BigDecimal value) {
+        if (value == null) return "₹0";
+        String digits = value.setScale(0, RoundingMode.HALF_UP).toBigInteger().toString();
+        if (digits.length() <= 3) return "₹" + digits;
+        String last3 = digits.substring(digits.length() - 3);
+        String rest = digits.substring(0, digits.length() - 3);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < rest.length(); i++) {
+            if (i > 0 && (rest.length() - i) % 2 == 0) sb.append(',');
+            sb.append(rest.charAt(i));
         }
-        NumberFormat format = NumberFormat.getNumberInstance(Locale.of("en", "IN"));
-        format.setMaximumFractionDigits(2);
-        return format.format(value);
+        return "₹" + sb + "," + last3;
     }
 }
