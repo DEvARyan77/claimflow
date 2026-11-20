@@ -242,7 +242,7 @@ function sourcesFor(ids, clauses, doc) {
   });
 }
 
-function search(question, clauses, doc) {
+export function search(question, clauses, doc, limit = 3) {
   const words = question
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, ' ')
@@ -255,7 +255,7 @@ function search(question, clauses, doc) {
     })
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .slice(0, limit);
   return scored.map(({ c, score }, i) => ({
     number: i + 1,
     documentId: doc.id,
@@ -316,6 +316,38 @@ export function answerQuestion(fullQuestion, doc, clauses) {
       : 'On this free demo, your own policy is searched by keywords. The full app writes the answer with Gemini.',
     sources,
   };
+}
+
+/** Merges source lists, drops repeats, keeps at most `max`, and numbers them 1..n for the [1] citations. */
+function mergeSources(lists, max) {
+  const seen = new Set();
+  const out = [];
+  for (const s of lists.flat()) {
+    if (out.length >= max || seen.has(s.excerpt)) continue;
+    seen.add(s.excerpt);
+    out.push({ ...s, number: out.length + 1 });
+  }
+  return out;
+}
+
+/**
+ * RAG retrieval for the live AI: the clauses the prepared answer would cite, plus the best keyword matches.
+ * Returns the prepared answer too, so the site can fall back to it when the AI server is asleep.
+ */
+export function retrieveForQuestion(fullQuestion, doc, clauses) {
+  const local = answerQuestion(fullQuestion, doc, clauses);
+  const parts = fullQuestion.split(/\nQuestion:\s*/);
+  const query = parts.length > 1 ? `${parts[1]} ${parts[0]}` : fullQuestion;
+  const sources = mergeSources([local.mode === 'demo' ? local.sources : [], search(query, clauses, doc, 6)], 6);
+  return { local, sources };
+}
+
+/** Same idea for "Check compliance": the rule-based verdict's clauses plus matches for the treatment. */
+export function retrieveForPrecheck(input, doc, clauses) {
+  const local = precheck(input, doc, clauses);
+  const query = `${input.diagnosisLabel ?? ''} treatment waiting period exclusion sub-limit room rent co-payment network hospital`;
+  const sources = mergeSources([local.sources, search(query, clauses, doc, 6)], 7);
+  return { local, sources };
 }
 
 const rupees = (n) => `Rs. ${Math.round(Number(n)).toLocaleString('en-IN')}`;
@@ -415,6 +447,6 @@ export function extractProfileFromText(text) {
     policyNumber: policyNumber ? policyNumber.toUpperCase() : null,
     coverageLimit: parseAmount(sum),
     method: 'pattern',
-    note: 'Read from your PDF on this demo site (the full app uses AI and also reads photos). Please check every field.',
+    note: 'Read from your PDF in the browser. Please check every field.',
   };
 }
