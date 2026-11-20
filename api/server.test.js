@@ -49,7 +49,7 @@ before(async () => {
     BREVO_API_KEY: 'brevo-key',
     BREVO_BASE_URL: f,
     MAIL_FROM: 'sender@gmail.com',
-    ALLOWED_ORIGIN: 'claimflow-demo-test.onrender.com',
+    ALLOWED_ORIGIN: 'claimflow-demo-test',
     AI_REQUESTS_PER_HOUR: '6',
     EMAILS_PER_HOUR: '3',
   });
