@@ -156,7 +156,12 @@ export default function PolicyAssistant() {
             <h2 className="card-title">How answers are made</h2>
             {status ? (
               <p className="small">
-                {status.provider === 'demo' ? (
+                {status.provider === 'demo' && status.waking ? (
+                  <>
+                    <strong>Live AI is waking up.</strong> The free server sleeps when nobody uses it and takes about a
+                    minute to start. Until then, answers are prepared ones that cite the exact clauses.
+                  </>
+                ) : status.provider === 'demo' ? (
                   <>
                     <strong>Demo site.</strong> Common questions get prepared answers that cite the exact clauses of the
                     sample policy; other questions show the best-matching clauses. The full app sends those clauses to
