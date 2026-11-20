@@ -1,5 +1,6 @@
 import samplePolicyText from './sample-policy.txt?raw';
-import { answerQuestion, chunkPages, extractProfileFromText, parseClauses, precheck } from './policyBrain.js';
+import { chunkPages, extractProfileFromText, parseClauses, retrieveForPrecheck, retrieveForQuestion } from './policyBrain.js';
+import { API_URL, apiHealth, callApi, imageToBase64, wakeApi } from './aiClient.js';
 
 /**
  * The free demo site has no servers, so this file plays the part of all 9 microservices, in the browser.
@@ -101,6 +102,7 @@ function load() {
     db = null;
   }
   if (!db) db = seed();
+  wakeApi(); // the free API server sleeps after 15 idle minutes: start waking it now
   db.clauses ??= {};
   db.clauses[1] = sampleClauses; // never stored twice, always fresh
   return db;
@@ -129,8 +131,9 @@ const nextId = (list) => (list.length ? Math.max(...list.map((x) => x.id)) + 1 :
 const withRemaining = (p) => ({ ...p, remainingCoverage: Number(p.coverageLimit) - Number(p.usedAmount) });
 
 /** payment-service: approved claims are paid a few seconds later (checked whenever data is read). */
-function advance() {
+async function advance() {
   let changed = false;
+  const paid = [];
   for (const claim of db.claims) {
     if (claim.status === 'APPROVED' && Date.now() - new Date(claim.decidedAt).getTime() >= PAYMENT_DELAY_MS) {
       const reference = `PAY-${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
@@ -138,11 +141,53 @@ function advance() {
       claim.paidAt = iso();
       claim.paymentReference = reference;
       db.payments.push({ id: nextId(db.payments), claimId: claim.id, patientId: claim.patientId, providerId: claim.providerId, amount: claim.amount, reference, status: 'COMPLETED', paidAt: claim.paidAt });
-      db.notifications.push(note(db.notifications, claim, 'PAID'));
+      const n = note(db.notifications, claim, 'PAID');
+      db.notifications.push(n);
+      paid.push([claim, n]);
       changed = true;
     }
   }
   if (changed) save();
+  for (const [claim, n] of paid) await emailFor(claim, 'PAID', n);
+}
+
+/**
+ * notification-service: emails the patient (and the claim's extra address) through the ClaimFlow API.
+ * Demo addresses (@example.com) are skipped, like in the real app. If the server is still waking up,
+ * the email is sent in the background and the message updates when it's done.
+ */
+async function emailFor(claim, status, notification) {
+  if (!API_URL) return;
+  const health = apiHealth();
+  if (health && !health.email) return; // the server has no email key
+  const patient = db.patients.find((p) => p.id === claim.patientId);
+  const provider = db.providers.find((p) => p.id === claim.providerId);
+  const to = [patient?.email, claim.extraEmail].filter((e) => e && !/@example\.com$/i.test(e));
+  if (!to.length) return;
+  const body = { to, status, claimId: claim.id, amount: claim.amount, reason: claim.reason, patientName: patient?.name, hospital: provider?.name };
+  const apply = (r) => {
+    if (r.ok && r.data.sent?.length) {
+      notification.channel = 'EMAIL';
+      notification.deliveryStatus = 'SENT';
+      notification.recipient = r.data.sent.join(', ');
+    } else if (!r.ok && r.reason === 'error') {
+      notification.deliveryStatus = 'FAILED';
+      notification.recipient = to.join(', ');
+    }
+    save();
+  };
+  if (health?.email) apply(await callApi('/email', body, { awakeTimeout: 12_000 }));
+  else callApi('/email', body, { coldTimeout: 120_000 }).then(apply);
+}
+
+/** Adds a short line saying why a prepared answer is shown instead of a live AI one. */
+function preparedBecause(local, result) {
+  if (result.reason === 'off') return local;
+  const why =
+    result.reason === 'waking'
+      ? 'The live AI (Gemini) is waking up on its free server, about a minute. Here is a prepared answer; ask again shortly for a live one.'
+      : `The live AI didn't answer${result.message ? ` (${result.message})` : ''}, so here is a prepared answer.`;
+  return { ...local, note: local.note ? `${why} ${local.note}` : why };
 }
 
 /** claims-service ClaimRules, the same three checks as the Java code. */
@@ -168,9 +213,11 @@ async function fileFrom(form) {
   return file;
 }
 
+const isImage = (file) => /\.(jpe?g|png|webp)$/i.test(file.name) || file.type.startsWith('image/');
+
 async function readDocument(file) {
   const name = file.name.toLowerCase();
-  if (/\.(jpe?g|png|webp)$/.test(name) || file.type.startsWith('image/')) {
+  if (isImage(file)) {
     throw new DemoError(
       400,
       'Reading a photo needs the AI, which is switched off on this free demo site. Upload the policy as a PDF instead (try the sample policy).',
@@ -220,7 +267,7 @@ const routes = [
   [
     'POST',
     /^\/claims$/,
-    (_, body) => {
+    async (_, body) => {
       if (!body?.patientId || !body?.providerId || !body?.diagnosisCode || !(Number(body.amount) > 0)) throw new DemoError(400, 'Please fill in every field');
       const patient = db.patients.find((p) => p.id === Number(body.patientId));
       const provider = db.providers.find((p) => p.id === Number(body.providerId));
@@ -235,8 +282,10 @@ const routes = [
         patient.usedAmount = Number(patient.usedAmount) + claim.amount;
       }
       db.claims.push(claim);
-      db.notifications.push(note(db.notifications, claim, claim.status));
+      const n = note(db.notifications, claim, claim.status);
+      db.notifications.push(n);
       save();
+      await emailFor(claim, claim.status, n);
       return claim;
     },
   ],
@@ -251,7 +300,14 @@ const routes = [
   [
     'GET',
     /^\/policies\/assistant\/status$/,
-    () => ({ provider: 'demo', aiEnabled: false, chatModel: null, embeddingModel: 'keyword', documents: db.documents.length, chunks: 0, chunksWaitingForEmbedding: 0 }),
+    async () => {
+      await Promise.race([wakeApi(), wait(1500)]);
+      const h = apiHealth();
+      const base = { documents: db.documents.length, chunks: 0, chunksWaitingForEmbedding: 0, embeddingModel: 'keyword search in your browser' };
+      return h?.ai
+        ? { ...base, provider: 'gemini', aiEnabled: true, chatModel: h.model }
+        : { ...base, provider: 'demo', aiEnabled: false, chatModel: null, waking: Boolean(API_URL) };
+    },
   ],
   ['GET', /^\/policies$/, () => db.documents],
   [
@@ -277,8 +333,30 @@ const routes = [
     'POST',
     /^\/policies\/extract-profile$/,
     async (_, __, form) => {
-      const pages = await readDocument(await fileFrom(form));
-      return extractProfileFromText(pages.slice(0, 4).join('\n'));
+      const file = await fileFrom(form);
+      if (isImage(file)) {
+        if (!API_URL) await readDocument(file); // throws the "photos need AI" message
+        const result = await callApi('/extract-profile', { image: { mimeType: 'image/jpeg', base64: await imageToBase64(file) } }, { coldTimeout: 20_000 });
+        if (result.ok) return result.data;
+        throw new DemoError(
+          503,
+          result.reason === 'waking'
+            ? 'The AI server is waking up (free plan, about a minute). Try the photo again shortly, or upload the PDF now.'
+            : result.message || "The AI couldn't read this photo. Try again, or upload the PDF.",
+        );
+      }
+      const pages = await readDocument(file);
+      const text = pages.slice(0, 4).join('\n');
+      const local = extractProfileFromText(text);
+      if (apiHealth()?.ai) {
+        const result = await callApi('/extract-profile', { text }, { awakeTimeout: 30_000 });
+        if (result.ok) {
+          const merged = { ...result.data };
+          for (const key of ['name', 'email', 'phone', 'policyNumber', 'coverageLimit']) merged[key] ??= local[key];
+          return merged;
+        }
+      }
+      return local;
     },
   ],
   [
@@ -296,19 +374,28 @@ const routes = [
   [
     'POST',
     /^\/policies\/ask$/,
-    (_, body) => {
+    async (_, body) => {
       if (!body?.question?.trim()) throw new DemoError(400, 'Type a question first.');
       const doc = findDocument(body.documentId);
-      return answerQuestion(body.question.trim(), doc, db.clauses[doc.id] ?? []);
+      const question = body.question.trim();
+      const { local, sources } = retrieveForQuestion(question, doc, db.clauses[doc.id] ?? []);
+      if (!sources.length) return local;
+      const result = await callApi('/ask', { question, documentTitle: doc.title, sources });
+      if (result.ok) return { answer: result.data.answer, mode: 'ai', note: null, sources };
+      return preparedBecause(local, result);
     },
   ],
   [
     'POST',
     /^\/policies\/precheck$/,
-    (_, body) => {
+    async (_, body) => {
       const doc = findDocument(body?.documentId);
       const provider = db.providers.find((p) => p.name === body?.hospitalName);
-      return precheck({ ...body, inNetwork: provider ? provider.inNetwork : undefined }, doc, db.clauses[doc.id] ?? sampleClauses);
+      const input = { ...body, inNetwork: provider ? provider.inNetwork : undefined };
+      const { local, sources } = retrieveForPrecheck(input, doc, db.clauses[doc.id] ?? sampleClauses);
+      const result = await callApi('/precheck', { ...input, documentTitle: doc.title, sources });
+      if (result.ok) return { answer: result.data.answer, mode: 'ai', note: null, sources };
+      return preparedBecause(local, result);
     },
   ],
 ];
@@ -318,7 +405,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Same contract as fetch-ing the API Gateway: returns the JSON body or throws DemoError(status, message). */
 export async function demoRequest(path, { method = 'GET', body } = {}) {
   load();
-  advance();
+  await advance();
   const url = path.split('?')[0];
   const isAi = /^\/policies\/(ask|precheck|extract-profile)$/.test(url);
   await wait(isAi ? 700 + Math.random() * 500 : 120 + Math.random() * 160); // feels like a real network
