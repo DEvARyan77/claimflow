@@ -4,6 +4,7 @@ import { useSession } from '../session.jsx';
 import { initials } from '../format.js';
 import { LogoMark, PlusIcon } from './Icons.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
+import AiToggle from './AiToggle.jsx';
 
 export default function Header({ patient }) {
   const { signOut } = useSession();
@@ -42,6 +43,7 @@ export default function Header({ patient }) {
           </nav>
         </div>
         <div className="site-header-right">
+          <AiToggle />
           <ThemeToggle />
           <Link to="/new" className="btn btn-primary btn-pill new-claim-btn" aria-label="New claim">
             <PlusIcon /> <span className="new-claim-text">New claim</span>
