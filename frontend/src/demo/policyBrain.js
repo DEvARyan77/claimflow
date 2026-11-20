@@ -71,7 +71,7 @@ const TOPICS = [
   },
   {
     id: 'S72',
-    keywords: ['fracture', 'thigh', 's72', 'accident', 'injury', 'broken'],
+    keywords: ['fracture', 'thigh', 's72', 'accident', 'injur', 'broken'],
     clauses: ['3.1', '6.1', '8.3', '5.2', '6.2', '3.5'],
     answer:
       'Yes, **fracture treatment after an accident is covered** as hospitalisation [1].\n- Accidents skip the **30-day initial waiting period** [2] and have **no co-payment** [3].\n- If the fracture needs a **hip or knee joint replacement**, that part is paid up to **Rs. 1,50,000 per joint** [4] and is on the 24-month waiting list [5].\n- Road ambulance is covered up to **Rs. 2,000** [6].',
@@ -132,8 +132,15 @@ const TOPICS = [
       'Room rent is paid up to **1% of the Sum Insured per day**, and ICU up to **2% per day** [1][2].\n- If you pick a costlier room, **all related charges** (except medicines and implants) are paid in the same proportion [3].\n- Example: the allowed rent is Rs. 5,000/day but the room costs Rs. 10,000/day, so only **50%** of related charges are paid [3].',
   },
   {
+    id: 'adventure',
+    keywords: ['paraglid', 'skydiv', 'bungee', 'scuba', 'adventure sport', 'adventure'],
+    clauses: ['7.8', '6.1'],
+    answer:
+      '**Not covered.** Injuries from adventure sports such as **paragliding, skydiving, bungee jumping or scuba diving** are excluded [1].\n\nOther accidents are covered from day one, with no waiting period [2].',
+  },
+  {
     id: 'exclusions',
-    keywords: ['not covered', 'exclusion', 'excluded', 'exclude', "doesn't cover", 'what is not', 'not pay for'],
+    keywords: ['not covered', 'exclusion', 'excluded', 'exclude', "doesn't cover", 'what is not', 'not pay for', 'alcohol', 'ivf', 'infertility', 'obesity', 'bariatric', 'spectacles', 'hearing aid'],
     clauses: ['7.1', '7.2', '7.3', '7.5', '7.6', '7.8', '7.11', '7.10', '7.12'],
     answer:
       'The main things **not covered** are:\n- Cosmetic surgery (unless after an accident, burns or cancer) and dental treatment (unless after an accident) [1][2].\n- Spectacles, hearing aids and walking aids [3].\n- Infertility treatment and IVF [4], and injuries from alcohol or drug abuse [5].\n- Adventure sports injuries [6] and treatment outside India [7].\n- Admission **only for tests or observation** [8], and non-medical items like toiletries [9].',
@@ -281,9 +288,10 @@ export function answerQuestion(fullQuestion, doc, clauses) {
         bestScore = s;
       }
     }
-    // "Is this covered?" / "waiting period for this?" while filling a claim → answer for that treatment
-    const vague = !best || best.id === 'waiting' || /\b(this|my treatment|it)\b/.test(question);
-    if (diagnosis && vague && best?.id !== 'copay' && best?.id !== 'room') {
+    // "Is this covered?" / "waiting period for this?" while filling a claim → answer for that treatment.
+    // Only for vague questions: a question about something else must never get the claim's answer.
+    const vague = /\b(this|it|my treatment|my claim)\b/.test(question) && (!best || best.generic || best.id === diagnosis);
+    if (diagnosis && vague && best?.id !== 'copay') {
       best = TOPICS.find((t) => t.id === diagnosis) ?? best;
     }
     if (best) {
