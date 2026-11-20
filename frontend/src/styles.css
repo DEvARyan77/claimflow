@@ -790,8 +790,8 @@ input, select, textarea { transition: border-color 0.2s, box-shadow 0.25s var(--
 .assistant-chat-input .ask-row input { flex: 1 1 auto; min-width: 0; }
 @media (max-width: 640px) {
   .assistant-chat-head { padding: 12px 14px; }
-  .assistant-chat-body { height: calc(100dvh - 375px); min-height: 280px; padding: 14px; }
-  .assistant-chat-input { padding: 10px 12px; position: sticky; bottom: 0; }
+  .assistant-chat-body { height: calc(100vh - 160px); height: calc(100dvh - 160px); min-height: 300px; padding: 14px; }
+  .assistant-chat-input { padding: 10px 12px; }
 }
 
 /* My claims: the claim list sits next to the details (below them on phones) */
@@ -806,7 +806,8 @@ input, select, textarea { transition: border-color 0.2s, box-shadow 0.25s var(--
 .claim-row:hover { border-color: var(--accent-ring); transform: translateY(-2px); box-shadow: 0 8px 18px rgba(27, 29, 42, 0.07); }
 .claim-row:active { transform: scale(0.98); }
 .claim-row.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--surface-hover); }
-.claim-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.claim-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.claim-row { min-width: 0; }
 .claim-row-title { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .claim-row-detail { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .claim-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
@@ -833,4 +834,33 @@ input, select, textarea { transition: border-color 0.2s, box-shadow 0.25s var(--
 }
 @media (prefers-reduced-motion: reduce) {
   .claim-row, .ai-toggle, .ai-toggle-thumb, .ai-toggle svg { transition: none; animation: none; }
+}
+
+/* Phones and small tablets: list first, then details (My claims); documents first, then the chat (Policy assistant) */
+@media (max-width: 899px) {
+  .claims-hero, .assistant-hero { flex-direction: column; align-items: stretch; }
+  .claims-hero > .hero-main, .assistant-hero > .hero-main { flex: none; width: 100%; }
+  .claims-hero > .hero-side, .assistant-hero > .hero-side { display: contents; }
+  .claims-hero .claims-picker, .assistant-hero .docs-card { order: -1; }
+  .claims-hero .hero-side > :not(.claims-picker), .assistant-hero .status-card { order: 1; }
+  .claims-hero > *, .assistant-hero > *, .claims-hero .card, .assistant-hero .card { min-width: 0; max-width: 100%; }
+  .claim-list { max-height: 300px; }
+}
+
+/* Phones: the header fits on one row, the menu fits without swiping */
+@media (max-width: 640px) {
+  .site-header .brand { min-width: 0; gap: 8px; }
+  .site-header .brand span { font-size: 18px; }
+  .site-header .brand svg { width: 28px; height: 28px; flex-shrink: 0; }
+  .site-header-right { gap: 6px; }
+  .theme-toggle, .avatar { width: 36px; height: 36px; flex-basis: 36px; }
+  .new-claim-btn { width: 36px; height: 36px; min-height: 36px; }
+  .ai-toggle { height: 36px; padding: 0 7px; }
+  .main-nav { justify-content: space-between; padding: 0 4px; }
+  .main-nav a { padding-left: 8px; padding-right: 8px; font-size: 14px; }
+}
+@media (max-width: 400px) {
+  .ai-toggle svg { display: none; }
+  .site-header .brand span { font-size: 17px; }
+  .main-nav a { padding-left: 6px; padding-right: 6px; font-size: 13.5px; }
 }
