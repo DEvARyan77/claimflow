@@ -9,6 +9,35 @@ const HOST = (import.meta.env.VITE_API_HOST || import.meta.env.VITE_API_URL || '
 const withDomain = (h) => (h.includes('.') ? h : `${h}.onrender.com`);
 export const API_URL = HOST ? (/^https?:\/\//.test(HOST) ? HOST : `https://${withDomain(HOST)}`).replace(/\/$/, '') : '';
 
+// ---------- Live AI on/off switch (saved in this browser) ----------
+const AI_OFF_KEY = 'claimflow-ai-off';
+const aiListeners = new Set();
+
+/** True when the visitor turned live AI off: everything then runs on RAG only (clause search in the browser). */
+export function aiOff() {
+  try {
+    return localStorage.getItem(AI_OFF_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setAiOff(off) {
+  try {
+    if (off) localStorage.setItem(AI_OFF_KEY, '1');
+    else localStorage.removeItem(AI_OFF_KEY);
+  } catch {
+    // storage blocked: the switch still works until the page reloads
+  }
+  aiListeners.forEach((fn) => fn());
+}
+
+/** For React's useSyncExternalStore. */
+export function subscribeAi(fn) {
+  aiListeners.add(fn);
+  return () => aiListeners.delete(fn);
+}
+
 let health = null; // { ok, ai, email, model } once the server has answered
 let waking = null;
 
