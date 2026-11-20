@@ -29,6 +29,7 @@ export default function PolicyAssistant() {
   const [pending, setPending] = useState(null);
   const inputRef = useRef(null);
   const bodyRef = useRef(null);
+  const chatRef = useRef(null);
   const lastTurnRef = useRef(null);
   const aiIsOff = useAiOff();
 
@@ -71,6 +72,7 @@ export default function PolicyAssistant() {
     setError(null);
     setPending(q);
     setQuestion('');
+    chatRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); // phones: bring the whole chat into view
     try {
       const answer = await api.askPolicy(q, documentId);
       setConversation((items) => [...items, { id: Date.now(), question: q, answer }]);
@@ -95,9 +97,9 @@ export default function PolicyAssistant() {
         </p>
       </div>
 
-      <div className="hero">
+      <div className="hero assistant-hero">
         <section className="hero-main">
-          <div className="card assistant-chat">
+          <div className="card assistant-chat" ref={chatRef}>
             <div className="assistant-chat-head">
               <p className="ask-label">Ask about {selected ? selected.title : 'your policy'}</p>
               <span className={`pill ${aiIsOff ? 'pill-neutral' : 'pill-paid'}`}>{aiIsOff ? 'RAG only' : 'AI + RAG'}</span>
@@ -169,7 +171,7 @@ export default function PolicyAssistant() {
         </section>
 
         <aside className="hero-side">
-          <div className="card">
+          <div className="card docs-card">
             <h2 className="card-title">Policy documents</h2>
             {documents === null && <p className="muted small">Loading…</p>}
             {documents?.length === 0 && <p className="muted small">No documents yet.</p>}
