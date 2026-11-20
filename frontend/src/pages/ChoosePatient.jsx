@@ -27,7 +27,7 @@ const FILTERS = [
 const SORTS = {
   name: (a, b) => a.name.localeCompare(b.name),
   cover: (a, b) => Number(b.remainingCoverage) - Number(a.remainingCoverage),
-  newest: (a, b) => b.id - a.id,
+  newest: (a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')),
 };
 
 /** Wraps the part of the text that matches the search in <mark>. */

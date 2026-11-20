@@ -5,10 +5,8 @@
 x-backend-env: &backend-env
   CONFIG_SERVER_URL: http://config-server:8888
   EUREKA_URL: http://eureka-server:8761/eureka/
-  DB_HOST: postgres
-  DB_PORT: "5432"
-  DB_USER: postgres
-  DB_PASSWORD: postgres
+  # Every service uses its own database (patient_db, claims_db, ...) on this MongoDB
+  MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/?directConnection=true}
   RABBIT_HOST: rabbitmq
   RABBIT_PORT: "5672"
   RABBIT_USER: guest
@@ -33,7 +31,7 @@ x-backend-service: &backend-service
   restart: on-failure          # services stop if the Config Server isn't ready yet; Docker starts them again
   environment: *backend-env
   depends_on:
-    postgres:
+    mongodb:
       condition: service_healthy
     rabbitmq:
       condition: service_healthy
@@ -44,21 +42,16 @@ x-backend-service: &backend-service
 
 services:
   # ---------- Infrastructure ----------
-  postgres:
-    image: pgvector/pgvector:pg16      # PostgreSQL 16 + the pgvector extension (for the policy assistant)
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+  # MongoDB Atlas Local: the same MongoDB as Atlas, including Atlas Vector Search ($vectorSearch)
+  # for the policy assistant. Connect with Compass at mongodb://localhost:27017/?directConnection=true
+  mongodb:
+    image: mongodb/mongodb-atlas-local:8
     ports:
-      - "5433:5432"            # 5433 on your laptop, so it doesn't clash with a locally installed PostgreSQL
+      - "27017:27017"
     volumes:
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+      - mongodata:/data/db
+      - mongoconfig:/data/configdb
+    # The image has its own health check; it reports healthy once MongoDB and search are up
 
   rabbitmq:
     image: rabbitmq:4-management
@@ -132,5 +125,6 @@ services:
       - api-gateway
 
 volumes:
-  pgdata:
+  mongodata:
+  mongoconfig:
   ollama:

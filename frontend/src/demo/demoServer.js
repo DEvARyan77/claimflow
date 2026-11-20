@@ -44,14 +44,14 @@ function seed() {
     { id: 4, registrationNumber: 'ROH-UP-2001', name: 'City Care Clinic', city: 'Noida', specializations: ['General Medicine', 'Orthopedics'], inNetwork: false },
   ];
   const claims = [
-    { id: 1, patientId: 1, providerId: 1, diagnosisCode: 'I21', description: '3 nights, angioplasty', amount: 50000, status: 'PAID', reason: null, paymentReference: 'PAY-7F3A91C2', createdAt: iso(5 * DAY), decidedAt: iso(5 * DAY), paidAt: iso(5 * DAY - 5000) },
-    { id: 2, patientId: 1, providerId: 3, diagnosisCode: 'J18', description: null, amount: 10000, status: 'PAID', reason: null, paymentReference: 'PAY-4C1D88E2', createdAt: iso(2 * DAY), decidedAt: iso(2 * DAY), paidAt: iso(2 * DAY - 5000) },
-    { id: 3, patientId: 1, providerId: 4, diagnosisCode: 'S72', description: null, amount: 20000, status: 'REJECTED', reason: 'City Care Clinic is out of network', paymentReference: null, createdAt: iso(DAY), decidedAt: iso(DAY), paidAt: null },
-    { id: 4, patientId: 4, providerId: 2, diagnosisCode: 'K35', description: 'Appendix removal', amount: 260000, status: 'PAID', reason: null, paymentReference: 'PAY-91BC20AA', createdAt: iso(7 * DAY), decidedAt: iso(7 * DAY), paidAt: iso(7 * DAY - 5000) },
+    { id: 1, claimNumber: claimNo(1), patientId: 1, providerId: 1, diagnosisCode: 'I21', description: '3 nights, angioplasty', amount: 50000, status: 'PAID', reason: null, paymentReference: 'PAY-7F3A91C2', createdAt: iso(5 * DAY), decidedAt: iso(5 * DAY), paidAt: iso(5 * DAY - 5000) },
+    { id: 2, claimNumber: claimNo(2), patientId: 1, providerId: 3, diagnosisCode: 'J18', description: null, amount: 10000, status: 'PAID', reason: null, paymentReference: 'PAY-4C1D88E2', createdAt: iso(2 * DAY), decidedAt: iso(2 * DAY), paidAt: iso(2 * DAY - 5000) },
+    { id: 3, claimNumber: claimNo(3), patientId: 1, providerId: 4, diagnosisCode: 'S72', description: null, amount: 20000, status: 'REJECTED', reason: 'City Care Clinic is out of network', paymentReference: null, createdAt: iso(DAY), decidedAt: iso(DAY), paidAt: null },
+    { id: 4, claimNumber: claimNo(4), patientId: 4, providerId: 2, diagnosisCode: 'K35', description: 'Appendix removal', amount: 260000, status: 'PAID', reason: null, paymentReference: 'PAY-91BC20AA', createdAt: iso(7 * DAY), decidedAt: iso(7 * DAY), paidAt: iso(7 * DAY - 5000) },
   ];
   const payments = claims
     .filter((c) => c.status === 'PAID')
-    .map((c, i) => ({ id: i + 1, claimId: c.id, patientId: c.patientId, providerId: c.providerId, amount: c.amount, reference: c.paymentReference, status: 'COMPLETED', paidAt: c.paidAt }));
+    .map((c, i) => ({ id: i + 1, claimId: c.id, claimNumber: c.claimNumber, patientId: c.patientId, providerId: c.providerId, amount: c.amount, reference: c.paymentReference, status: 'COMPLETED', paidAt: c.paidAt }));
   const notifications = [];
   claims.forEach((c) => {
     if (c.status === 'REJECTED') notifications.push(note(notifications, c, 'REJECTED', c.decidedAt));
@@ -67,7 +67,7 @@ function seed() {
 }
 
 function messageFor(claim, status) {
-  const ref = `claim #${claim.id}`;
+  const ref = `claim ${claim.claimNumber ?? `#${claim.id}`}`;
   switch (status) {
     case 'APPROVED':
       return `Good news! Your ${ref} of ${money(claim.amount)} is approved. We're paying the hospital now.`;
@@ -85,6 +85,7 @@ function note(list, claim, status, sentAt = iso()) {
     id: list.length ? Math.max(...list.map((n) => n.id)) + 1 : 1,
     patientId: claim.patientId,
     claimId: claim.id,
+    claimNumber: claim.claimNumber,
     claimStatus: status,
     channel: 'IN_APP',
     deliveryStatus: 'NOT_SENT',
@@ -130,6 +131,7 @@ export function resetDemo() {
   db = null;
 }
 
+const claimNo = (id) => `CLM-${new Date().getFullYear()}-${String(id).padStart(6, '0')}`;
 const nextId = (list) => (list.length ? Math.max(...list.map((x) => x.id)) + 1 : 1);
 const withRemaining = (p) => ({ ...p, remainingCoverage: Number(p.coverageLimit) - Number(p.usedAmount) });
 
@@ -143,7 +145,7 @@ async function advance() {
       claim.status = 'PAID';
       claim.paidAt = iso();
       claim.paymentReference = reference;
-      db.payments.push({ id: nextId(db.payments), claimId: claim.id, patientId: claim.patientId, providerId: claim.providerId, amount: claim.amount, reference, status: 'COMPLETED', paidAt: claim.paidAt });
+      db.payments.push({ id: nextId(db.payments), claimId: claim.id, claimNumber: claim.claimNumber, patientId: claim.patientId, providerId: claim.providerId, amount: claim.amount, reference, status: 'COMPLETED', paidAt: claim.paidAt });
       const n = note(db.notifications, claim, 'PAID');
       db.notifications.push(n);
       paid.push([claim, n]);
@@ -276,7 +278,8 @@ const routes = [
       if (!body?.patientId || !body?.providerId || !body?.diagnosisCode || !(Number(body.amount) > 0)) throw new DemoError(400, 'Please fill in every field');
       const patient = db.patients.find((p) => p.id === Number(body.patientId));
       const provider = db.providers.find((p) => p.id === Number(body.providerId));
-      const claim = { id: nextId(db.claims), patientId: Number(body.patientId), providerId: Number(body.providerId), diagnosisCode: String(body.diagnosisCode).toUpperCase(), description: body.description ?? null, amount: Number(body.amount), extraEmail: body.extraEmail ?? null, status: 'SUBMITTED', reason: null, paymentReference: null, createdAt: iso(), decidedAt: null, paidAt: null };
+      const newId = nextId(db.claims);
+      const claim = { id: newId, claimNumber: claimNo(newId), patientId: Number(body.patientId), providerId: Number(body.providerId), diagnosisCode: String(body.diagnosisCode).toUpperCase(), description: body.description ?? null, amount: Number(body.amount), extraEmail: body.extraEmail ?? null, status: 'SUBMITTED', reason: null, paymentReference: null, createdAt: iso(), decidedAt: null, paidAt: null };
       const reason = rejectionReason(patient, provider, claim.amount);
       claim.decidedAt = iso();
       if (reason) {

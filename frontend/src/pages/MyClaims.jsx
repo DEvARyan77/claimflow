@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import { api } from '../api.js';
-import { firstName, formatINR, formatWhen } from '../format.js';
+import { firstName, formatINR, formatWhen, claimLabel, notificationClaimLabel } from '../format.js';
 import ClaimTracker from '../components/ClaimTracker.jsx';
 import StatusPill from '../components/StatusPill.jsx';
 import { PlusIcon } from '../components/Icons.jsx';
@@ -113,7 +113,7 @@ export default function MyClaims() {
               <div>
                 <h1>{headline(selected, patient)}</h1>
                 <p className="lead">
-                  Claim #{selected.id} at {providerName(selected.providerId)} · {formatINR(selected.amount)} · submitted{' '}
+                  Claim {claimLabel(selected)} at {providerName(selected.providerId)} · {formatINR(selected.amount)} · submitted{' '}
                   {formatWhen(selected.createdAt).toLowerCase()}
                 </p>
               </div>
@@ -145,7 +145,7 @@ export default function MyClaims() {
                   >
                     <span className="claim-row-main">
                       <span className="claim-row-title">
-                        Claim #{claim.id} · {providerName(claim.providerId)}
+                        Claim {claimLabel(claim)} · {providerName(claim.providerId)}
                       </span>
                       <span className="claim-row-detail">{detailLine(claim)}</span>
                     </span>
@@ -206,11 +206,11 @@ function announceChanges(claimList, messageList, lastStatuses, seenMessages) {
       const before = lastStatuses.current.get(claim.id);
       if (!before || before === claim.status) return;
       if (claim.status === 'APPROVED') {
-        toast({ type: 'success', title: `Claim #${claim.id} approved`, message: `${formatINR(claim.amount)} will be paid to the hospital.` });
+        toast({ type: 'success', title: `Claim ${claimLabel(claim)} approved`, message: `${formatINR(claim.amount)} will be paid to the hospital.` });
       } else if (claim.status === 'PAID') {
-        toast({ type: 'success', title: `Claim #${claim.id} paid`, message: `${formatINR(claim.amount)} has been paid to the hospital.` });
+        toast({ type: 'success', title: `Claim ${claimLabel(claim)} paid`, message: `${formatINR(claim.amount)} has been paid to the hospital.` });
       } else if (claim.status === 'REJECTED') {
-        toast({ type: 'error', title: `Claim #${claim.id} not approved`, message: claim.reason });
+        toast({ type: 'error', title: `Claim ${claimLabel(claim)} not approved`, message: claim.reason });
       }
     });
   }
@@ -221,9 +221,9 @@ function announceChanges(claimList, messageList, lastStatuses, seenMessages) {
       .filter((n) => !seenMessages.current.has(n.id))
       .forEach((n) => {
         if (n.channel === 'EMAIL' && n.deliveryStatus === 'SENT') {
-          toast({ type: 'info', title: 'Email sent', message: `Update for claim #${n.claimId} sent to ${n.recipient}.` });
+          toast({ type: 'info', title: 'Email sent', message: `Update for claim ${notificationClaimLabel(n)} sent to ${n.recipient}.` });
         } else if (n.deliveryStatus === 'FAILED') {
-          toast({ type: 'warning', title: "Email couldn't be sent", message: `The update for claim #${n.claimId} is saved here, but the email didn't go out.` });
+          toast({ type: 'warning', title: "Email couldn't be sent", message: `The update for claim ${notificationClaimLabel(n)} is saved here, but the email didn't go out.` });
         }
       });
   }

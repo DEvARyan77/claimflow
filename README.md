@@ -15,10 +15,10 @@ A built-in **AI Policy Assistant (RAG)** acts as the patient's representative: u
 - **Instant claim decisions** using three rules: active policy, in-network hospital, enough coverage left
 - **Live claim tracker**: Submitted → Verified → Approved → Paid → Notified, updated as each service finishes its part
 - **Event-driven payments and notifications** over RabbitMQ: the Claims service never waits for them
-- **Safe under concurrency**: coverage is reserved under a database row lock, so two claims at the same moment can't overspend a policy
+- **Safe under concurrency, without locks**: coverage is reserved with one atomic conditional MongoDB update (`findAndModify` with `$expr`), so parallel claims can never overspend a policy (tested with 40 claims fired at once)
 - **Resilient**: if Patient or Provider service is down, the circuit breaker opens, the claim stays *SUBMITTED*, and a scheduled job re-checks it automatically when the service is back
 - **Idempotent payments**: a claim is never paid twice, even if RabbitMQ delivers a message twice
-- **AI Policy Assistant (RAG)**: policy PDFs are split into chunks, embedded and stored in **PostgreSQL + pgvector**; questions retrieve the closest clauses and a language model answers using only them, with page citations. Works with **Google Gemini (free key), OpenAI or local Ollama**, and still works with no AI key at all (search-only mode with a built-in local embedding)
+- **AI Policy Assistant (RAG)**: policy PDFs are split into chunks, embedded and stored in **MongoDB**, searched with **Atlas Vector Search** (`$vectorSearch`); questions retrieve the closest clauses and a language model answers using only them, with page citations. Works with **Google Gemini (free key), OpenAI or local Ollama**, and still works with no AI key at all (search-only mode with a built-in local embedding)
 - **Claim pre-check**: "Will this be covered?" before submitting, with a verdict (likely / partly / not covered) and the waiting periods, sub-limits and exclusions that apply
 - **One command to run everything** with Docker Compose, plus demo data on first start
 
@@ -34,7 +34,7 @@ flowchart LR
     GW --> NOT[Notification service<br/>:8085]
     GW --> POL[Policy assistant<br/>:8086]
     POL -- embeddings + chat --> LLM[(Gemini / OpenAI /<br/>Ollama)]
-    POL --- VEC[(PostgreSQL<br/>+ pgvector)]
+    POL --- VEC[(MongoDB<br/>+ Atlas Vector Search)]
     CLM -- Feign + circuit breaker --> PAT
     CLM -- Feign + circuit breaker --> PRO
     CLM -- claim.* events --> MQ[(RabbitMQ<br/>claims.exchange)]
@@ -55,13 +55,13 @@ flowchart LR
 | `claims-service` | 8083 | Verifies, approves/rejects claims, publishes events | `claims_db` |
 | `payment-service` | 8084 | Pays approved claims, marks them PAID | `payment_db` |
 | `notification-service` | 8085 | Sends (simulated) SMS for every status change | `notification_db` |
-| `policy-assistant-service` | 8086 | RAG over policy documents: upload, ask, pre-check claims | `policy_db` (pgvector) |
+| `policy-assistant-service` | 8086 | RAG over policy documents: upload, ask, pre-check claims | `policy_db` (+ vector index) |
 | `frontend` | 3000 | React patient portal (nginx) | none |
 
 ### How the Policy Assistant works (RAG)
 
-1. **Indexing**: an uploaded PDF (read with Apache PDFBox) or text policy is split page by page into overlapping 160-word chunks. Each chunk gets two embeddings: the AI provider's embedding, and a local 512-dimension "hashing" embedding that needs no AI. Both are stored in PostgreSQL with **pgvector**.
-2. **Retrieval**: the question is embedded the same way, and the 5 closest chunks are found with pgvector's cosine distance (`<=>`).
+1. **Indexing**: an uploaded PDF (read with Apache PDFBox) or text policy is split page by page into overlapping 160-word chunks. Each chunk gets two embeddings: the AI provider's embedding, and a local 512-dimension "hashing" embedding that needs no AI. Both are stored as arrays in MongoDB (`policy_chunks`), with an **Atlas Vector Search** index on each.
+2. **Retrieval**: the question is embedded the same way, and the 5 closest chunks of that policy are found with `$vectorSearch` (cosine). If the cluster has no Atlas Search (plain MongoDB), or a policy was uploaded seconds ago and isn't indexed yet, exact cosine similarity is computed in Java instead, so the assistant always answers.
 3. **Generation**: the chunks are numbered and sent to the chat model with strict rules: use only these excerpts, cite them as [1], [2], mention waiting periods, sub-limits, co-payments and exclusions, and say so when the policy doesn't answer the question.
 4. **Fallbacks**: no AI key, or the provider is down → the assistant returns the best-matching clauses (search-only mode). Chunks uploaded while the AI was off get their AI embeddings later from a background job.
 
@@ -72,14 +72,14 @@ The LLM client is a small hand-written client for the OpenAI-compatible API (`/c
 1. `POST /claims` reaches the **Claims service** through the gateway.
 2. Claims calls **Patient** and **Provider** services with **OpenFeign** (through a **Resilience4j circuit breaker**).
 3. The rules run (`ClaimRules`, unit-tested): patient exists and policy active → hospital exists and in-network → amount ≤ remaining coverage.
-4. On approval, Claims reserves the amount in Patient service (`SELECT … FOR UPDATE`, so it can never go negative).
+4. On approval, Claims reserves the amount in Patient service: one atomic `findAndModify` that adds the amount only if `usedAmount + amount <= coverageLimit`, so it can never go negative.
 5. Claims publishes `claim.approved` / `claim.rejected` to the `claims.exchange` topic exchange and returns immediately.
 6. **Payment service** (bound to `claim.approved`) pays the hospital, then calls Claims to mark it **PAID**, which publishes `claim.paid`.
 7. **Notification service** (bound to `claim.*`) sends the patient a message for every status change.
 
 ## Tech stack
 
-**Backend:** Java 21 · Spring Boot 4 · Spring Cloud (Eureka, Config Server, Gateway, OpenFeign, LoadBalancer, CircuitBreaker/Resilience4j) · Spring Data JPA / Hibernate · JdbcTemplate · PostgreSQL + pgvector · RabbitMQ (Spring AMQP) · Apache PDFBox · Lombok · JUnit 5
+**Backend:** Java 21 · Spring Boot 4 · Spring Cloud (Eureka, Config Server, Gateway, OpenFeign, LoadBalancer, CircuitBreaker/Resilience4j) · Spring Data MongoDB · MongoDB (database per service, Decimal128 money) · Atlas Vector Search · RabbitMQ (Spring AMQP) · Apache PDFBox · Lombok · JUnit 5
 **AI:** Retrieval-Augmented Generation · Google Gemini / OpenAI / Ollama through the OpenAI-compatible API
 **Frontend:** React 19 · React Router · Vite · plain CSS
 **DevOps:** Docker · Docker Compose · nginx · multi-module Maven
@@ -113,7 +113,7 @@ Stop with `docker compose down` (add `-v` to wipe the databases).
 
 1. **Infrastructure in Docker:**
    ```bash
-   docker compose up -d postgres rabbitmq
+   docker compose up -d mongodb rabbitmq
    ```
 2. **Backend:** open the root folder in IntelliJ IDEA (it detects the multi-module Maven project) and run these main classes **in this order**:
    `EurekaServerApplication` → `ConfigServerApplication` → `PatientServiceApplication`, `ProviderServiceApplication`, `ClaimsServiceApplication`, `PaymentServiceApplication`, `NotificationServiceApplication`, `PolicyAssistantApplication` → `ApiGatewayApplication`
@@ -176,9 +176,8 @@ claimflow/
 │   ├── claims-service/             # rules, Feign clients, circuit breaker, retry job, tests
 │   ├── payment-service/
 │   ├── notification-service/
-│   └── policy-assistant-service/   # RAG: PDF reading, chunking, pgvector search, LLM client
+│   └── policy-assistant-service/   # RAG: PDF reading, chunking, vector search, LLM client
 ├── frontend/                       # React + Vite, served by nginx in Docker
-├── docker/postgres/init.sql        # creates the 5 databases
 ├── docker-compose.yml
 ├── Dockerfile                      # builds any backend service (MODULE build arg)
 └── docs/                           # Postman collection, sample policy PDF, screenshots
@@ -201,12 +200,32 @@ claimflow/
 ## Troubleshooting
 
 - **`Could not find artifact org.springframework.cloud:spring-cloud-dependencies`**: the `<spring-cloud.version>` in the root `pom.xml` must match your Spring Boot version. Generate any project on [start.spring.io](https://start.spring.io) with Boot 4.1.x plus a Spring Cloud dependency and copy its `<spring-cloud.version>`.
-- **`database "patient_db" does not exist` when running locally**: a PostgreSQL installed on your machine is using port 5432. That's why this project's Postgres listens on **5433**.
-- **`invalid value for parameter "TimeZone": "Asia/Calcutta"`**: already handled; each service sets `Asia/Kolkata` in its `main` method.
+- **Can't connect to MongoDB when running locally**: start it with `docker compose up -d mongodb`, or set `MONGODB_URI` (e.g. your Atlas connection string). Each service creates its own database (`patient_db`, `claims_db`, …) on first start.
 - **Services keep restarting in Docker** for the first minute: they wait for the Config Server. Check `docker compose logs config-server`.
-- **`database "policy_db" does not exist` or `type "vector" does not exist`**: your Postgres volume was created before the Policy Assistant was added, so `init.sql` didn't run again. Run `docker compose down -v` once (this deletes the demo data) and start again.
+- **Policy Assistant logs "Atlas Vector Search not available"**: you're on plain MongoDB; search still works (in-app cosine). Use the `mongodb` service from docker-compose (MongoDB Atlas Local) or an Atlas cluster to get `$vectorSearch`.
 - **Policy Assistant says "search-only mode" although you set a key**: check `docker compose logs policy-assistant-service | grep "Policy assistant AI"`. The `.env` file must be next to `docker-compose.yml`, and services must be recreated (`docker compose up -d`).
 - **Eureka shows a red "self preservation" warning**: harmless in development; it's turned off in `eureka-server`'s config.
+
+## Database design (MongoDB)
+
+Each service owns its own database on one MongoDB cluster, and no service reads another's data (it calls that service's API instead).
+
+| Database | Collections | Notes |
+|---|---|---|
+| `patient_db` | `patients` | unique indexes on `email`, `policyNumber`; money as Decimal128 |
+| `provider_db` | `providers` | unique `registrationNumber`; specializations are an array inside the document |
+| `claims_db` | `claims`, `counters` | `claimNumber` (CLM-2026-000123) from an atomic counter; index on `status + createdAt` for the retry job |
+| `payment_db` | `payments` | unique index on `claimId`: a claim can never be paid twice |
+| `notification_db` | `notifications` | one document per message |
+| `policy_db` | `policy_documents`, `policy_chunks` | chunk vectors with Atlas Vector Search indexes |
+
+Tests that need a database run against a real MongoDB when `MONGODB_TEST_URI` (and `ATLAS_LOCAL_TEST_URI` for vector search) are set, and are skipped otherwise:
+
+```bash
+docker run -d -p 27017:27017 mongodb/mongodb-atlas-local:8
+MONGODB_TEST_URI="mongodb://localhost:27017/?directConnection=true" \
+ATLAS_LOCAL_TEST_URI="mongodb://localhost:27017/?directConnection=true" mvn test
+```
 
 ## Possible next steps
 

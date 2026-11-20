@@ -42,3 +42,9 @@ export function initials(name = '') {
 export function firstName(name = '') {
   return name.split(' ')[0] || name;
 }
+
+/** "CLM-2026-000123" (readable claim number), or "#12" for claims made before claim numbers existed. */
+export const claimLabel = (claim) => claim?.claimNumber ?? `#${claim?.id}`;
+
+/** Same for a notification, which carries claimNumber and claimId. */
+export const notificationClaimLabel = (n) => n?.claimNumber ?? `#${n?.claimId}`;

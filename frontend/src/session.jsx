@@ -7,7 +7,7 @@ const SessionContext = createContext(null);
 function readStoredId() {
   try {
     const value = window.localStorage.getItem(STORAGE_KEY);
-    return value ? Number(value) : null;
+    return value || null;   // MongoDB ids are strings, e.g. "673f1c2a9b..."
   } catch {
     return null;
   }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { api } from '../api.js';
-import { formatINR, formatWhen } from '../format.js';
+import { formatINR, formatWhen, claimLabel } from '../format.js';
 import StatusPill from '../components/StatusPill.jsx';
 
 export default function Coverage() {
@@ -83,7 +83,7 @@ export default function Coverage() {
                   <div>
                     <p className="usage-title">{providers[claim.providerId] ?? `Hospital #${claim.providerId}`}</p>
                     <p className="muted small">
-                      Claim #{claim.id} · {claim.diagnosisCode} · {formatWhen(claim.decidedAt)}
+                      Claim {claimLabel(claim)} · {claim.diagnosisCode} · {formatWhen(claim.decidedAt)}
                       {payment ? ` · ${payment.reference}` : ''}
                     </p>
                   </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
-import { formatINR } from '../format.js';
+import { formatINR, claimLabel } from '../format.js';
 import { defaultDocumentFor } from '../policyDocs.js';
 import AnswerCard from '../components/AnswerCard.jsx';
 import ClaimChat from '../components/ClaimChat.jsx';
@@ -99,18 +99,18 @@ export default function NewClaim() {
     try {
       const claim = await api.submitClaim({
         patientId: patient.id,
-        providerId: Number(providerId),
+        providerId,
         diagnosisCode,
         description: description.trim() || null,
         amount: Number(amount),
         extraEmail: extraEmail.trim() || null,
       });
       if (claim.status === 'APPROVED') {
-        toast({ type: 'success', title: `Claim #${claim.id} approved`, message: `${formatINR(claim.amount)} will be paid to ${chosen?.name ?? 'the hospital'}.` });
+        toast({ type: 'success', title: `Claim ${claimLabel(claim)} approved`, message: `${formatINR(claim.amount)} will be paid to ${chosen?.name ?? 'the hospital'}.` });
       } else if (claim.status === 'REJECTED') {
-        toast({ type: 'error', title: `Claim #${claim.id} not approved`, message: claim.reason });
+        toast({ type: 'error', title: `Claim ${claimLabel(claim)} not approved`, message: claim.reason });
       } else {
-        toast({ type: 'info', title: `Claim #${claim.id} submitted`, message: 'We’re still verifying it. You’ll get an update shortly.' });
+        toast({ type: 'info', title: `Claim ${claimLabel(claim)} submitted`, message: 'We’re still verifying it. You’ll get an update shortly.' });
       }
       await refreshPatient();
       navigate('/', { state: { claimId: claim.id } });

@@ -1,5 +1,5 @@
 import { CheckIcon, CrossIcon } from './Icons.jsx';
-import { formatINR, formatWhen } from '../format.js';
+import { formatINR, formatWhen, claimLabel } from '../format.js';
 
 /**
  * Turns a claim (+ its notifications) into the 5-step journey:
@@ -67,7 +67,7 @@ export default function ClaimTracker({ claim, providerName, notifications }) {
   const steps = buildSteps(claim, providerName, notifications);
 
   return (
-    <ol className="tracker" aria-label={`Progress of claim ${claim.id}`}>
+    <ol className="tracker" aria-label={`Progress of claim ${claimLabel(claim)}`}>
       {steps.map((step) => (
         <li key={step.key} className={`tracker-step is-${step.state}`} aria-current={step.state === 'current' ? 'step' : undefined}>
           <span className="tracker-bar" aria-hidden="true" />
