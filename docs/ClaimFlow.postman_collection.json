@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "ClaimFlow",
+    "description": "All requests go through the API Gateway. Run the 'Claims' folder top to bottom to see every rule in action.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:9080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "List patients",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/patients"
+          }
+        },
+        {
+          "name": "Get patient 1",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/patients/1"
+          }
+        },
+        {
+          "name": "Create patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/patients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sneha Gupta\",\n  \"email\": \"sneha.gupta@example.com\",\n  \"phone\": \"+91 98100 00004\",\n  \"policyNumber\": \"POL1004\",\n  \"coverageLimit\": 400000\n}"
+            }
+          }
+        },
+        {
+          "name": "Create duplicate patient (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/patients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul Again\",\n  \"email\": \"rahul.sharma@example.com\",\n  \"policyNumber\": \"POL9999\",\n  \"coverageLimit\": 100000\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Providers",
+      "item": [
+        {
+          "name": "List hospitals",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/providers"
+          }
+        },
+        {
+          "name": "Create hospital",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/providers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registrationNumber\": \"ROH-MH-3001\",\n  \"name\": \"Lilavati Hospital\",\n  \"city\": \"Mumbai\",\n  \"specializations\": [\"Cardiology\", \"Nephrology\"]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claims",
+      "item": [
+        {
+          "name": "1. Approved claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/claims",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": 1,\n  \"providerId\": 1,\n  \"diagnosisCode\": \"I21\",\n  \"description\": \"Angioplasty, 3 nights\",\n  \"amount\": 50000\n}"
+            }
+          }
+        },
+        {
+          "name": "2. Rejected: out-of-network hospital",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/claims",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": 1,\n  \"providerId\": 4,\n  \"diagnosisCode\": \"S72\",\n  \"amount\": 20000\n}"
+            }
+          }
+        },
+        {
+          "name": "3. Rejected: coverage exceeded",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/claims",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": 1,\n  \"providerId\": 1,\n  \"diagnosisCode\": \"I21\",\n  \"amount\": 900000\n}"
+            }
+          }
+        },
+        {
+          "name": "4. Rejected: inactive policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/claims",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": 3,\n  \"providerId\": 1,\n  \"diagnosisCode\": \"J18\",\n  \"amount\": 10000\n}"
+            }
+          }
+        },
+        {
+          "name": "5. Rejected: patient not found",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/claims",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": 99,\n  \"providerId\": 1,\n  \"diagnosisCode\": \"J18\",\n  \"amount\": 10000\n}"
+            }
+          }
+        },
+        {
+          "name": "6. Validation error (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/claims",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": 1,\n  \"providerId\": 1,\n  \"diagnosisCode\": \"\",\n  \"amount\": -5\n}"
+            }
+          }
+        },
+        {
+          "name": "Claims of patient 1",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/claims/patient/1"
+          }
+        },
+        {
+          "name": "Get claim 1",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/claims/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments & Notifications",
+      "item": [
+        {
+          "name": "Payment for claim 1",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/payments/claim/1"
+          }
+        },
+        {
+          "name": "Payments of patient 1",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/payments/patient/1"
+          }
+        },
+        {
+          "name": "Notifications of patient 1",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/notifications/patient/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Policy Assistant (RAG)",
+      "item": [
+        {
+          "name": "Assistant status",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/policies/assistant/status"
+          }
+        },
+        {
+          "name": "List policy documents",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/policies"
+          }
+        },
+        {
+          "name": "Upload a policy (PDF or .txt)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/policies",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "title",
+                  "value": "My policy",
+                  "type": "text"
+                },
+                {
+                  "key": "policyNumber",
+                  "value": "POL1001",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ask a question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/policies/ask",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Is cataract surgery covered, and is there a waiting period?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Pre-check a claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/policies/precheck",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"diagnosisCode\": \"I21\",\n  \"diagnosisLabel\": \"Heart attack\",\n  \"amount\": 180000,\n  \"hospitalName\": \"Apollo Hospital\",\n  \"daysInHospital\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "Auto-fill profile from a policy (PDF or photo)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "docs/sample-policy-schedule.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/policies/extract-profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                "extract-profile"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

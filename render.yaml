@@ -1,0 +1,19 @@
+# Render Blueprint: deploys the free demo site (the React app with its in-browser demo backend).
+# Render dashboard → New → Blueprint → pick this repo. No credit card needed for a static site.
+services:
+  - type: web
+    name: claimflow-demo
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build:demo
+    staticPublishPath: dist
+    pullRequestPreviewsEnabled: false
+    routes:
+      # Single-page app: /coverage, /new … are handled by React Router
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

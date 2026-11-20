@@ -1,0 +1,38 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: patient-service
+              uri: lb://patient-service        # lb = ask Eureka + load-balance across instances
+              predicates:
+                - Path=/patients/**
+
+            - id: provider-service
+              uri: lb://provider-service
+              predicates:
+                - Path=/providers/**
+
+            - id: claims-service
+              uri: lb://claims-service
+              predicates:
+                - Path=/claims/**
+
+            - id: payment-service
+              uri: lb://payment-service
+              predicates:
+                - Path=/payments/**
+
+            - id: notification-service
+              uri: lb://notification-service
+              predicates:
+                - Path=/notifications/**
+
+            - id: policy-assistant-service
+              uri: lb://policy-assistant-service
+              predicates:
+                - Path=/policies/**

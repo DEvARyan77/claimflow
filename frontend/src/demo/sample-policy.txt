@@ -1,0 +1,95 @@
+CLAIMFLOW SECURE HEALTH POLICY
+Policy Wording (Sample)
+
+This is a fictional sample policy created for the ClaimFlow demo project. It is not issued by any real insurer and must not be used for any real insurance decision.
+
+Section 1. About this policy
+1.1 This policy covers medical expenses for hospitalisation of the insured person during the policy year, up to the Sum Insured shown in the policy schedule.
+1.2 The policy year is twelve months from the policy start date. The Sum Insured is available once per policy year and resets at renewal.
+1.3 Claims are settled only for treatment taken at a Network Hospital. A Network Hospital is a hospital that has an agreement with ClaimFlow for cashless treatment. Claims for treatment at hospitals outside the network are not payable under this plan, except in an Emergency as defined in Section 2.
+1.4 ClaimFlow pays the Network Hospital directly (cashless). The insured person does not need to pay the covered amount and claim it back.
+
+Section 2. Definitions
+2.1 Hospitalisation means admission to a hospital for at least 24 consecutive hours for active treatment, except for Day Care Procedures.
+2.2 Day Care Procedure means a treatment that needs less than 24 hours in hospital because of medical advancement, such as cataract surgery, dialysis, chemotherapy or lithotripsy (kidney stone removal).
+2.3 Pre-existing Disease means any condition, illness or injury that the insured person had, or was diagnosed with, or received treatment for, within 48 months before the policy start date.
+2.4 Emergency means a sudden, serious medical condition that needs immediate treatment to prevent death or serious harm, such as a heart attack, stroke or major accident.
+2.5 Sum Insured means the maximum amount ClaimFlow will pay in one policy year for all claims together.
+
+=== Page 2 ===
+
+Section 3. What is covered
+3.1 In-patient hospitalisation: room, boarding and nursing charges, ICU charges, surgeon and doctor fees, anaesthesia, blood, oxygen, operation theatre charges, medicines, drugs and diagnostic tests used during hospitalisation.
+3.2 Pre-hospitalisation expenses: medical expenses incurred up to 30 days before admission for the same illness, such as consultations and diagnostic tests.
+3.3 Post-hospitalisation expenses: medical expenses incurred up to 60 days after discharge for the same illness, such as follow-up consultations and medicines.
+3.4 Day Care Procedures: all Day Care Procedures listed in Annexure A are covered even though hospitalisation is less than 24 hours.
+3.5 Road ambulance: up to Rs. 2,000 per hospitalisation for transport to the nearest Network Hospital.
+3.6 Organ donor expenses: medical expenses for harvesting the organ from the donor, up to 10% of the Sum Insured.
+3.7 Maternity: expenses for childbirth (normal delivery or caesarean section) are covered up to Rs. 50,000 per delivery, after a waiting period of 24 months from the first policy start date. Pre-natal and post-natal expenses are covered only if the insured person is hospitalised.
+3.8 AYUSH treatment: in-patient treatment under Ayurveda, Yoga, Unani, Siddha and Homeopathy at a government-recognised hospital, up to Rs. 25,000 per policy year.
+
+Section 4. Room rent and ICU limits
+4.1 Room rent, boarding and nursing charges are payable up to 1% of the Sum Insured per day.
+4.2 ICU charges are payable up to 2% of the Sum Insured per day.
+4.3 If the insured person stays in a room with a higher rent than allowed, all associated hospital charges (except medicines and implants) will be paid in the same proportion as the allowed room rent bears to the actual room rent. Example: if the allowed rent is Rs. 5,000 per day and the room chosen costs Rs. 10,000 per day, only 50% of the associated charges will be paid.
+
+=== Page 3 ===
+
+Section 5. Sub-limits for specific treatments
+The following treatments are covered only up to the amounts below, per policy year, even if the Sum Insured is higher:
+5.1 Cataract surgery: up to Rs. 40,000 per eye.
+5.2 Knee or hip joint replacement: up to Rs. 1,50,000 per joint.
+5.3 Hernia, hydrocele and piles surgery: up to Rs. 60,000.
+5.4 Kidney stone removal (including lithotripsy): up to Rs. 50,000.
+5.5 Hysterectomy (removal of the uterus): up to Rs. 75,000.
+5.6 Modern treatments such as robotic surgery, stem cell therapy and immunotherapy: up to 50% of the Sum Insured.
+
+Section 6. Waiting periods
+6.1 Initial waiting period: no claim is payable for any illness during the first 30 days from the first policy start date. This does not apply to hospitalisation due to an accident.
+6.2 Specific illnesses: the following treatments are covered only after 24 months of continuous coverage: cataract, hernia, hydrocele, piles, kidney and gall bladder stones, joint replacement, benign prostate enlargement, sinusitis, tonsillitis, and varicose veins.
+6.3 Pre-existing Diseases: covered only after 36 months of continuous coverage, provided they were declared in the proposal form. Diabetes and hypertension are covered after 12 months if declared.
+6.4 Maternity: covered after 24 months of continuous coverage (see clause 3.7).
+6.5 Waiting periods are counted from the first policy start date with ClaimFlow and continue across renewals without a break.
+
+=== Page 4 ===
+
+Section 7. What is not covered (exclusions)
+ClaimFlow will not pay for:
+7.1 Cosmetic or plastic surgery, unless needed because of an accident, burns or cancer.
+7.2 Dental treatment, unless it needs hospitalisation because of an accident.
+7.3 Spectacles, contact lenses, hearing aids and walking aids.
+7.4 Treatment for obesity or weight control, including bariatric surgery, unless the insured person's BMI is above 40 and the surgery is recommended by a doctor.
+7.5 Infertility treatment, IVF, and treatment for sexual dysfunction.
+7.6 Injury or illness caused by alcohol or drug abuse.
+7.7 Intentional self-injury, attempted suicide, or participation in a criminal act.
+7.8 Injury from adventure sports such as paragliding, skydiving, bungee jumping or scuba diving.
+7.9 Experimental or unproven treatments that are not recognised by the Indian medical council.
+7.10 Hospitalisation only for diagnostic tests or observation, with no active treatment.
+7.11 Treatment taken outside India.
+7.12 Non-medical items such as toiletries, food for attendants, admission kits and service charges.
+
+Section 8. Co-payment
+8.1 For insured persons aged 61 years or more at the start of the policy year, a co-payment of 10% applies to every claim. This means the insured person pays 10% of the admissible claim amount and ClaimFlow pays the remaining 90%.
+8.2 If the insured person chooses a Network Hospital in a higher city zone than the zone on the policy schedule, a co-payment of 15% applies.
+8.3 No co-payment applies to claims caused by an accident.
+
+=== Page 5 ===
+
+Section 9. How to make a claim
+9.1 Cashless claims: show the ClaimFlow health card at the Network Hospital's insurance desk. The hospital sends the request to ClaimFlow, which checks the policy and approves the claim, usually within minutes.
+9.2 Planned hospitalisation must be informed at least 48 hours before admission. Emergency hospitalisation must be informed within 24 hours of admission.
+9.3 Post-hospitalisation bills must be submitted within 30 days of completing the treatment.
+9.4 Documents needed: claim form, discharge summary, final hospital bill with break-up, payment receipts, prescriptions, investigation reports, and photo identity proof.
+9.5 ClaimFlow will settle or reject a claim within 30 days of receiving the last necessary document. If a claim is rejected, the reason and the policy clause will be given in writing.
+
+Section 10. Renewal and cancellation
+10.1 The policy is renewable for life, except in case of fraud or misrepresentation.
+10.2 A grace period of 30 days is allowed for paying the renewal premium. Coverage continues without a break during the grace period, but no claim is payable for hospitalisation that starts during the grace period.
+10.3 The insured person may cancel the policy at any time. A refund of premium is given for the unused period if no claim has been made.
+
+Section 11. Grievances
+11.1 For any complaint, write to the ClaimFlow grievance cell. A reply will be given within 14 days.
+11.2 If not satisfied with the reply, the insured person may approach the Insurance Ombudsman.
+
+Annexure A. Examples of Day Care Procedures
+Cataract surgery, dialysis, chemotherapy, radiotherapy, lithotripsy, tonsillectomy, coronary angiography, endoscopy with removal of polyps, and dilatation and curettage (D&C).

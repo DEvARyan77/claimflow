@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: patient-service      # must match patient-service.yml on the Config Server
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    config:
+      fail-fast: true

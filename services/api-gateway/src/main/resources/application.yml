@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    config:
+      fail-fast: true   # stop (and let Docker restart us) if the Config Server isn't up yet

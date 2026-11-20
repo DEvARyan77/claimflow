@@ -1,0 +1,13 @@
+server:
+  port: 8083
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/claims_db
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+claimflow:
+  claims:
+    # Claims stuck in SUBMITTED (because Patient/Provider service was down) are re-checked this often
+    retry-pending-interval-ms: 30000

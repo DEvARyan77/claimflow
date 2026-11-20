@@ -1,0 +1,136 @@
+# Start everything:   docker compose up --build
+# Then open:          http://localhost:3000
+# Stop:               docker compose down        (add -v to also delete the database)
+
+x-backend-env: &backend-env
+  CONFIG_SERVER_URL: http://config-server:8888
+  EUREKA_URL: http://eureka-server:8761/eureka/
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_USER: postgres
+  DB_PASSWORD: postgres
+  RABBIT_HOST: rabbitmq
+  RABBIT_PORT: "5672"
+  RABBIT_USER: guest
+  RABBIT_PASSWORD: guest
+  # Policy Assistant AI (set them in a .env file, see .env.example). Empty = search-only mode.
+  LLM_PROVIDER: ${LLM_PROVIDER:-none}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+  LLM_CHAT_MODEL: ${LLM_CHAT_MODEL:-}
+  LLM_EMBEDDING_MODEL: ${LLM_EMBEDDING_MODEL:-}
+  LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-}
+  # Real email (see .env.example). Empty MAIL_USERNAME = email off, messages only in the app.
+  MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:-}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  MAIL_FROM: ${MAIL_FROM:-}
+  NOTIFY_EMAIL_OVERRIDE: ${NOTIFY_EMAIL_OVERRIDE:-}
+  APP_URL: ${APP_URL:-http://localhost:3000}
+
+x-backend-service: &backend-service
+  restart: on-failure          # services stop if the Config Server isn't ready yet; Docker starts them again
+  environment: *backend-env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    config-server:
+      condition: service_started
+    eureka-server:
+      condition: service_started
+
+services:
+  # ---------- Infrastructure ----------
+  postgres:
+    image: pgvector/pgvector:pg16      # PostgreSQL 16 + the pgvector extension (for the policy assistant)
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"            # 5433 on your laptop, so it doesn't clash with a locally installed PostgreSQL
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"          # dashboard: http://localhost:15672 (guest / guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  # ---------- Platform services ----------
+  eureka-server:
+    build: { context: ., args: { MODULE: eureka-server } }
+    ports:
+      - "8761:8761"            # dashboard: http://localhost:8761
+
+  config-server:
+    build: { context: ., args: { MODULE: config-server } }
+    environment: *backend-env
+    ports:
+      - "8888:8888"
+
+  api-gateway:
+    <<: *backend-service
+    build: { context: ., args: { MODULE: api-gateway } }
+    ports:
+      - "9080:8080"   # your machine:container (8080 was busy on this PC)
+
+  # ---------- Business services ----------
+  patient-service:
+    <<: *backend-service
+    build: { context: ., args: { MODULE: patient-service } }
+
+  provider-service:
+    <<: *backend-service
+    build: { context: ., args: { MODULE: provider-service } }
+
+  claims-service:
+    <<: *backend-service
+    build: { context: ., args: { MODULE: claims-service } }
+
+  payment-service:
+    <<: *backend-service
+    build: { context: ., args: { MODULE: payment-service } }
+
+  notification-service:
+    <<: *backend-service
+    build: { context: ., args: { MODULE: notification-service } }
+
+  policy-assistant-service:
+    <<: *backend-service
+    build: { context: ., args: { MODULE: policy-assistant-service } }
+
+  # Optional local AI models. Start with: docker compose --profile ollama up -d ollama (see .env.example)
+  ollama:
+    image: ollama/ollama
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+  # ---------- Frontend ----------
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  pgdata:
+  ollama:

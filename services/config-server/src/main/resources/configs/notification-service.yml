@@ -1,0 +1,42 @@
+server:
+  port: 8085
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/notification_db
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  rabbitmq:
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+  # Real email over SMTP. Gmail: MAIL_USERNAME = your Gmail address, MAIL_PASSWORD = a 16-letter app password
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
+claimflow:
+  email:
+    from: ${MAIL_FROM:}                     # empty = same as MAIL_USERNAME
+    override-to: ${NOTIFY_EMAIL_OVERRIDE:}  # send EVERY email here (useful for the demo patients)
+    app-url: ${APP_URL:http://localhost:3000}
+
+management:
+  health:
+    mail:
+      enabled: false   # don't log in to SMTP on every health check

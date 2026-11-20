@@ -1,0 +1,37 @@
+server:
+  port: 8086
+
+spring:
+  datasource:
+    # stringtype=unspecified lets PostgreSQL turn the text "[0.1,0.2,...]" into a pgvector value
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/policy_db?stringtype=unspecified
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  sql:
+    init:
+      mode: always          # runs schema.sql (creates the pgvector extension and tables)
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+claimflow:
+  ai:
+    # none   = search-only mode, works with no API key (default)
+    # gemini = Google Gemini (free API key from https://aistudio.google.com/apikey)
+    # openai = OpenAI
+    # ollama = local models with Ollama (no key; see README)
+    provider: ${LLM_PROVIDER:none}
+    api-key: ${LLM_API_KEY:}
+    base-url: ${LLM_BASE_URL:}                 # leave empty to use the provider's default
+    chat-model: ${LLM_CHAT_MODEL:}             # leave empty to use the provider's default
+    # used when the main model is overloaded (503) or out of quota (429). Gemini default: gemini-3.5-flash-lite. "off" = none
+    fallback-chat-model: ${LLM_FALLBACK_CHAT_MODEL:}
+    embedding-model: ${LLM_EMBEDDING_MODEL:}   # leave empty to use the provider's default
+    timeout-seconds: 180    # "thinking" models can be slow
+    # low / medium / high for thinking models (default low for Gemini). "off" = don't send it (e.g. gpt-4o-mini)
+    reasoning-effort: ${LLM_REASONING_EFFORT:}
+  rag:
+    chunk-words: 160        # size of each policy piece
+    overlap-words: 30       # words shared between neighbouring pieces, so no sentence is lost at a border
+    top-k: 5                # how many pieces are given to the model for each question
