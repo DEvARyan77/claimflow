@@ -85,7 +85,7 @@ function SourceItem({ source }) {
 export default function AnswerCard({ answer, question, showVerdict = false }) {
   const written = answer.mode === 'ai' || answer.mode === 'demo';
   const { verdict, body } = showVerdict && written ? splitVerdict(answer.answer) : { verdict: null, body: answer.answer };
-  const badge = answer.mode === 'ai' ? 'AI answer · Gemini · cites your policy' : answer.mode === 'demo' ? 'Prepared answer · cites the policy' : 'Search only';
+  const badge = answer.mode === 'ai' ? 'AI answer · Gemini · cites your policy' : answer.mode === 'demo' ? 'RAG answer · cites your policy' : 'RAG search · matching clauses';
 
   return (
     <article className="card answer-card">
