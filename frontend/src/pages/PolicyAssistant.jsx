@@ -6,6 +6,7 @@ import { defaultDocumentFor, documentsFor } from '../policyDocs.js';
 import AnswerCard from '../components/AnswerCard.jsx';
 import { toast } from '../toast.jsx';
 import FilePicker from '../components/FilePicker.jsx';
+import { useAiOff } from '../components/AiToggle.jsx';
 
 const SUGGESTIONS = [
   'Is cataract surgery covered?',
@@ -25,7 +26,11 @@ export default function PolicyAssistant() {
   const [conversation, setConversation] = useState([]);
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState(null);
+  const [pending, setPending] = useState(null);
   const inputRef = useRef(null);
+  const bodyRef = useRef(null);
+  const lastTurnRef = useRef(null);
+  const aiIsOff = useAiOff();
 
   const loadDocuments = useCallback(async (selectId) => {
     try {
@@ -40,8 +45,20 @@ export default function PolicyAssistant() {
 
   useEffect(() => {
     loadDocuments();
-    api.assistantStatus().then(setStatus).catch(() => setStatus(null));
   }, [loadDocuments]);
+
+  useEffect(() => {
+    api.assistantStatus().then(setStatus).catch(() => setStatus(null));
+  }, [aiIsOff]);
+
+  // Newest question at the bottom, like a chat: scroll the chat (not the page) to it
+  useEffect(() => {
+    const body = bodyRef.current;
+    const turn = lastTurnRef.current;
+    if (!body) return;
+    const top = turn ? turn.offsetTop - body.offsetTop - 8 : body.scrollHeight;
+    body.scrollTo({ top, behavior: 'smooth' });
+  }, [conversation.length, pending]);
 
   const ask = async (text) => {
     const q = (text ?? question).trim();
@@ -52,14 +69,18 @@ export default function PolicyAssistant() {
     }
     setAsking(true);
     setError(null);
+    setPending(q);
+    setQuestion('');
     try {
       const answer = await api.askPolicy(q, documentId);
-      setConversation((items) => [{ id: Date.now(), question: q, answer }, ...items]);
-      setQuestion('');
+      setConversation((items) => [...items, { id: Date.now(), question: q, answer }]);
     } catch (e) {
       setError(e.message);
+      setQuestion(q);
     } finally {
+      setPending(null);
       setAsking(false);
+      inputRef.current?.focus({ preventScroll: true });
     }
   };
 
@@ -76,55 +97,74 @@ export default function PolicyAssistant() {
 
       <div className="hero">
         <section className="hero-main">
-          <form
-            className="card ask-card"
-            onSubmit={(e) => {
-              e.preventDefault();
-              ask();
-            }}
-          >
-            <label htmlFor="question" className="ask-label">
-              Ask about {selected ? selected.title : 'your policy'}
-            </label>
-            <div className="ask-row">
-              <input
-                id="question"
-                ref={inputRef}
-                type="text"
-                maxLength={500}
-                placeholder="e.g. Is knee replacement covered, and how much will they pay?"
-                value={question}
-                onChange={(e) => {
-                  setQuestion(e.target.value);
-                  if (error) setError(null);
-                }}
-                aria-invalid={Boolean(error)}
-              />
-              <button type="submit" className="btn btn-primary" disabled={asking || !documentId}>
-                {asking ? 'Reading your policy…' : 'Ask'}
-              </button>
+          <div className="card assistant-chat">
+            <div className="assistant-chat-head">
+              <p className="ask-label">Ask about {selected ? selected.title : 'your policy'}</p>
+              <span className={`pill ${aiIsOff ? 'pill-neutral' : 'pill-paid'}`}>{aiIsOff ? 'RAG only' : 'AI + RAG'}</span>
             </div>
-            {error && <p className="field-error">{error}</p>}
-            <div className="suggestions" aria-label="Suggested questions">
-              {SUGGESTIONS.map((s) => (
-                <button key={s} type="button" className="chip-button" onClick={() => ask(s)} disabled={asking || !documentId}>
-                  {s}
-                </button>
+
+            <div className="assistant-chat-body" ref={bodyRef} aria-live="polite">
+              {conversation.length === 0 && !pending && (
+                <div className="chat-empty">
+                  <p className="small muted">Try one of these, or type your own question below.</p>
+                  <div className="suggestions" aria-label="Suggested questions">
+                    {SUGGESTIONS.map((s) => (
+                      <button key={s} type="button" className="chip-button" onClick={() => ask(s)} disabled={asking || !documentId}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="callout">
+                    <strong>Tip: </strong>Before you submit a claim, use <em>Check compliance</em> on the New claim page
+                    to see waiting periods, sub-limits and exclusions that may apply.
+                  </div>
+                </div>
+              )}
+              {conversation.map((item, i) => (
+                <div key={item.id} className="chat-turn" ref={!pending && i === conversation.length - 1 ? lastTurnRef : undefined}>
+                  <p className="chat-question">{item.question}</p>
+                  <AnswerCard answer={item.answer} />
+                </div>
               ))}
+              {pending && (
+                <div className="chat-turn" ref={lastTurnRef}>
+                  <p className="chat-question">{pending}</p>
+                  <p className="small muted chat-typing">Reading your policy</p>
+                </div>
+              )}
             </div>
-          </form>
 
-          {conversation.length === 0 && (
-            <div className="callout">
-              <strong>Tip: </strong>Before you submit a claim, use <em>Check compliance</em> on the New claim page
-              to see waiting periods, sub-limits and exclusions that may apply.
-            </div>
-          )}
-
-          <div className="stack-md" aria-live="polite">
-            {conversation.map((item) => (
-              <AnswerCard key={item.id} question={item.question} answer={item.answer} />
-            ))}
+            <form
+              className="assistant-chat-input"
+              onSubmit={(e) => {
+                e.preventDefault();
+                ask();
+              }}
+            >
+              <label htmlFor="question" className="visually-hidden">
+                Your question
+              </label>
+              <div className="ask-row">
+                <input
+                  id="question"
+                  ref={inputRef}
+                  type="text"
+                  maxLength={500}
+                  autoComplete="off"
+                  placeholder="e.g. Is knee replacement covered, and how much will they pay?"
+                  value={question}
+                  onChange={(e) => {
+                    setQuestion(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  aria-invalid={Boolean(error)}
+                />
+                <button type="submit" className="btn btn-primary" disabled={asking || !documentId}>
+                  {asking ? 'Reading…' : 'Ask'}
+                </button>
+              </div>
+              {error && <p className="field-error">{error}</p>}
+            </form>
           </div>
         </section>
 
@@ -156,7 +196,13 @@ export default function PolicyAssistant() {
             <h2 className="card-title">How answers are made</h2>
             {status ? (
               <p className="small">
-                {status.provider === 'demo' && status.waking ? (
+                {status.aiOff ? (
+                  <>
+                    <strong>Live AI off · RAG only.</strong> Your question is matched to the most relevant clauses of your
+                    policy right in your browser, and the answer is built from those clauses without AI. Turn AI on in
+                    the top bar to let Gemini write the answers.
+                  </>
+                ) : status.provider === 'demo' && status.waking ? (
                   <>
                     <strong>Live AI is waking up.</strong> The free server sleeps when nobody uses it and takes about a
                     minute to start. Until then, answers are prepared ones that cite the exact clauses.
