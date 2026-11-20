@@ -19,7 +19,8 @@ const cleanKey = (v) => String(v || '').trim().replace(/^["']|["']$/g, '').trim(
 const GEMINI_API_KEY = cleanKey(env.GEMINI_API_KEY);
 const GEMINI_BASE_URL = (env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai').replace(/\/$/, '');
 const GEMINI_MODEL = env.GEMINI_MODEL || 'gemini-3.5-flash-lite'; // free tier: about 500 requests a day
-const GEMINI_FALLBACK_MODEL = env.GEMINI_FALLBACK_MODEL ?? 'gemini-3.8-flash';
+const GEMINI_FALLBACK_MODEL = env.GEMINI_FALLBACK_MODEL ?? 'gemini-3.5-flash';
+const LAST_RESORT_MODEL = 'gemini-3.5-flash-lite'; // fastest model: tried last if the others are slow or busy
 const GEMINI_REASONING = env.GEMINI_REASONING_EFFORT ?? 'low';
 const BREVO_API_KEY = cleanKey(env.BREVO_API_KEY);
 const BREVO_BASE_URL = (env.BREVO_BASE_URL || 'https://api.brevo.com').replace(/\/$/, '');
@@ -80,7 +81,7 @@ class AiError extends Error {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function geminiChat(messages, { temperature = 0.2 } = {}) {
-  const models = [GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter((m, i, all) => m && all.indexOf(m) === i);
+  const models = [GEMINI_MODEL, GEMINI_FALLBACK_MODEL, LAST_RESORT_MODEL].filter((m, i, all) => m && all.indexOf(m) === i);
   let last;
   for (const model of models) {
     let reasoning = GEMINI_REASONING || null;
@@ -93,7 +94,7 @@ async function geminiChat(messages, { temperature = 0.2 } = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GEMINI_API_KEY}` },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(45_000),
+          signal: AbortSignal.timeout(18_000), // short, so a slow model still leaves time for the next one
         });
       } catch (e) {
         last = new AiError(504, `AI request failed: ${e.message}`);
