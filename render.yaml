@@ -1,5 +1,7 @@
-# Render Blueprint: deploys the free demo site (the React app with its in-browser demo backend).
-# Render dashboard → New → Blueprint → pick this repo. No credit card needed for a static site.
+# Render Blueprint for the ClaimFlow live demo (free plan, no credit card).
+#  - claimflow-demo: the React app as a static site (claim rules run in the browser)
+#  - claimflow-api:  a small Node.js server that keeps the Gemini and Brevo keys secret
+# Render dashboard → Blueprints → claimflow → Sync. Render asks for the 3 secret values below.
 services:
   - type: web
     name: claimflow-demo
@@ -8,6 +10,12 @@ services:
     buildCommand: npm ci && npm run build:demo
     staticPublishPath: dist
     pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_API_HOST # where the site finds the API (filled in by Render)
+        fromService:
+          type: web
+          name: claimflow-api
+          property: host
     routes:
       # Single-page app: /coverage, /new … are handled by React Router
       - type: rewrite
@@ -17,3 +25,24 @@ services:
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
+
+  - type: web
+    name: claimflow-api
+    runtime: node
+    plan: free
+    rootDir: api
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY # from https://aistudio.google.com/apikey
+        sync: false
+      - key: BREVO_API_KEY # Brevo → SMTP & API → API keys
+        sync: false
+      - key: MAIL_FROM # the sender address you verified in Brevo, e.g. your Gmail
+        sync: false
+      - key: ALLOWED_ORIGIN # only the ClaimFlow site may call the API (filled in by Render)
+        fromService:
+          type: web
+          name: claimflow-demo
+          property: host
