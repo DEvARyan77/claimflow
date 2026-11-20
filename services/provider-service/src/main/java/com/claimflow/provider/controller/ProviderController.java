@@ -24,7 +24,7 @@ public class ProviderController {
     }
 
     @GetMapping("/{id}")
-    public Provider getById(@PathVariable Long id) {
+    public Provider getById(@PathVariable String id) {
         return providerService.getProvider(id);
     }
 

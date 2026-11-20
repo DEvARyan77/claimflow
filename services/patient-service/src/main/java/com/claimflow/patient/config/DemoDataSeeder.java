@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
-/** Adds demo patients the first time the service starts (only when the table is empty). */
+/** Adds demo patients the first time the service starts (only when the collection is empty). */
 @Slf4j
 @Component
 @RequiredArgsConstructor

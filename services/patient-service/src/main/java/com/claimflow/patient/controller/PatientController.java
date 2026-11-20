@@ -25,7 +25,7 @@ public class PatientController {
     }
 
     @GetMapping("/{id}")
-    public Patient getById(@PathVariable Long id) {
+    public Patient getById(@PathVariable String id) {
         return patientService.getPatient(id);
     }
 
@@ -36,7 +36,7 @@ public class PatientController {
 
     /** Internal: used by claims-service after approving a claim. */
     @PostMapping("/{id}/used-amount")
-    public Patient addUsedAmount(@PathVariable Long id, @Valid @RequestBody UsedAmountRequest request) {
+    public Patient addUsedAmount(@PathVariable String id, @Valid @RequestBody UsedAmountRequest request) {
         return patientService.addUsedAmount(id, request.amount());
     }
 }

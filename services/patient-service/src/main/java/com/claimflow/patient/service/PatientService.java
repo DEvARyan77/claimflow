@@ -7,10 +7,11 @@ import com.claimflow.patient.exception.InsufficientCoverageException;
 import com.claimflow.patient.exception.PatientNotFoundException;
 import com.claimflow.patient.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -29,11 +30,18 @@ public class PatientService {
         patient.setPhone(request.phone());
         patient.setPolicyNumber(request.policyNumber());
         patient.setCoverageLimit(request.coverageLimit());
-        patient.setPolicyActive(request.policyActive());
-        return patientRepository.save(patient);
+        patient.setPolicyActive(request.policyActive() == null || request.policyActive());
+        patient.setUsedAmount(BigDecimal.ZERO);
+        patient.setCreatedAt(Instant.now());
+        try {
+            return patientRepository.save(patient);
+        } catch (DuplicateKeyException e) {
+            // Two requests raced past the check above; the unique index stops the second one.
+            throw new DuplicatePatientException(request.email(), request.policyNumber());
+        }
     }
 
-    public Patient getPatient(Long id) {
+    public Patient getPatient(String id) {
         return patientRepository.findById(id)
                 .orElseThrow(() -> new PatientNotFoundException(id));
     }
@@ -44,17 +52,14 @@ public class PatientService {
 
     /**
      * Called by the Claims service when a claim is approved.
-     * The row lock + re-check means coverage can never go negative, even with parallel claims.
+     * One atomic conditional update (see PatientRepositoryCustomImpl): coverage can never go
+     * negative, even when claims are approved in parallel.
      */
-    @Transactional
-    public Patient addUsedAmount(Long id, BigDecimal amount) {
-        Patient patient = patientRepository.findByIdForUpdate(id)
-                .orElseThrow(() -> new PatientNotFoundException(id));
-
-        if (amount.compareTo(patient.getRemainingCoverage()) > 0) {
-            throw new InsufficientCoverageException(patient.getRemainingCoverage());
-        }
-        patient.setUsedAmount(patient.getUsedAmount().add(amount));
-        return patientRepository.save(patient);
+    public Patient addUsedAmount(String id, BigDecimal amount) {
+        return patientRepository.reserveCoverage(id, amount).orElseThrow(() -> {
+            // Nothing was updated: either the patient doesn't exist or the amount doesn't fit.
+            Patient patient = getPatient(id);
+            return new InsufficientCoverageException(patient.getRemainingCoverage());
+        });
     }
 }

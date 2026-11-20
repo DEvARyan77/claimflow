@@ -1,42 +1,46 @@
 package com.claimflow.patient.entity;
 
-import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
-@Entity
-@Table(name = "patients")
+/** A policyholder, stored in the "patients" collection of patient_db. */
+@Document("patients")
 @Data
 @NoArgsConstructor
 public class Patient {
 
+    /** MongoDB ObjectId, sent to clients as a 24-character hex string. */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Indexed(unique = true)
     private String email;
 
     private String phone;
 
-    @Column(nullable = false, unique = true)
+    @Indexed(unique = true)
     private String policyNumber;
 
     private Boolean policyActive;
 
-    @Column(nullable = false, precision = 14, scale = 2)
+    /** Money is stored as Decimal128 (exact), never as a floating-point double. */
+    @Field(targetType = FieldType.DECIMAL128)
     private BigDecimal coverageLimit;          // the most the insurance pays in a policy year
 
-    @Column(nullable = false, precision = 14, scale = 2)
+    @Field(targetType = FieldType.DECIMAL128)
     private BigDecimal usedAmount;             // already used by approved claims
 
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /** Shown in API responses as "remainingCoverage" (computed, not stored). */
     public BigDecimal getRemainingCoverage() {
@@ -44,12 +48,5 @@ public class Patient {
             return BigDecimal.ZERO;
         }
         return coverageLimit.subtract(usedAmount == null ? BigDecimal.ZERO : usedAmount);
-    }
-
-    @PrePersist
-    void setDefaults() {
-        if (policyActive == null) policyActive = true;
-        if (usedAmount == null) usedAmount = BigDecimal.ZERO;
-        createdAt = LocalDateTime.now();
     }
 }

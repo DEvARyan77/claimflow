@@ -1,43 +1,37 @@
 package com.claimflow.provider.entity;
 
-import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name = "providers")
+/** A hospital, stored in the "providers" collection of provider_db. */
+@Document("providers")
 @Data
 @NoArgsConstructor
 public class Provider {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     /** Unique hospital ID used by insurers (like India's ROHINI ID), so a hospital can't be added twice. */
-    @Column(nullable = false, unique = true)
+    @Indexed(unique = true)
     private String registrationNumber;
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
     private String city;
 
-    /** One hospital, many specializations; a Set ignores duplicates. Stored in its own table. */
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "provider_specializations", joinColumns = @JoinColumn(name = "provider_id"))
-    @Column(name = "specialization")
+    /**
+     * One hospital, many specializations. In PostgreSQL this needed its own table;
+     * in MongoDB it is simply an array inside the hospital document.
+     */
     private Set<String> specializations = new HashSet<>();
 
     /** In-network = the hospital has an agreement with the insurer. Out-of-network claims are rejected. */
     private Boolean inNetwork;
-
-    @PrePersist
-    void setDefaults() {
-        if (inNetwork == null) inNetwork = true;
-    }
 }

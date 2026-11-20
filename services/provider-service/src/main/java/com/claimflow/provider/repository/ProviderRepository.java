@@ -1,8 +1,8 @@
 package com.claimflow.provider.repository;
 
 import com.claimflow.provider.entity.Provider;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface ProviderRepository extends JpaRepository<Provider, Long> {
+public interface ProviderRepository extends MongoRepository<Provider, String> {
     boolean existsByRegistrationNumber(String registrationNumber);
 }

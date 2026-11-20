@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.math.BigDecimal;
 
-/** 409: the claim amount is more than the coverage left (checked again here, inside a row lock). */
+/** 409: the claim amount is more than the coverage left (checked atomically in MongoDB). */
 @ResponseStatus(HttpStatus.CONFLICT)
 public class InsufficientCoverageException extends RuntimeException {
     public InsufficientCoverageException(BigDecimal remaining) {

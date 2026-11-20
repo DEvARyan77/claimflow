@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class PatientNotFoundException extends RuntimeException {
-    public PatientNotFoundException(Long id) {
+    public PatientNotFoundException(String id) {
         super("Patient not found with id: " + id);
     }
 }

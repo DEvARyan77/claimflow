@@ -6,6 +6,7 @@ import com.claimflow.provider.exception.DuplicateProviderException;
 import com.claimflow.provider.exception.ProviderNotFoundException;
 import com.claimflow.provider.repository.ProviderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -33,11 +34,16 @@ public class ProviderService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toCollection(HashSet::new)));
-        provider.setInNetwork(request.inNetwork());
-        return providerRepository.save(provider);
+        provider.setInNetwork(request.inNetwork() == null || request.inNetwork());
+        try {
+            return providerRepository.save(provider);
+        } catch (DuplicateKeyException e) {
+            // Two requests raced past the check above; the unique index stops the second one.
+            throw new DuplicateProviderException(regNo);
+        }
     }
 
-    public Provider getProvider(Long id) {
+    public Provider getProvider(String id) {
         return providerRepository.findById(id)
                 .orElseThrow(() -> new ProviderNotFoundException(id));
     }
