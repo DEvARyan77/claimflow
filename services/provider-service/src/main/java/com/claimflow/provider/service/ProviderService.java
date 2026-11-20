@@ -48,6 +48,11 @@ public class ProviderService {
                 .orElseThrow(() -> new ProviderNotFoundException(id));
     }
 
+    public Provider getByRegistrationNumber(String regNo) {
+        return providerRepository.findByRegistrationNumber(regNo.trim().toUpperCase())
+                .orElseThrow(() -> new ProviderNotFoundException("registration " + regNo));
+    }
+
     public List<Provider> getAllProviders() {
         return providerRepository.findAll().stream()
                 .sorted(Comparator.comparing(Provider::getName))

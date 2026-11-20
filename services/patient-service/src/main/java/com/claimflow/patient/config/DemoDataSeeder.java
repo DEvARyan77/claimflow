@@ -9,6 +9,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /** Adds demo patients the first time the service starts (only when the collection is empty). */
 @Slf4j
@@ -26,13 +27,13 @@ public class DemoDataSeeder implements CommandLineRunner {
         }
         patientService.createPatient(new CreatePatientRequest(
                 "Rahul Sharma", "rahul.sharma@example.com", "+91 98100 00001", "POL1001",
-                new BigDecimal("500000"), true));
+                new BigDecimal("500000"), true, LocalDate.now().minusYears(2)));
         patientService.createPatient(new CreatePatientRequest(
                 "Priya Nair", "priya.nair@example.com", "+91 98100 00002", "POL1002",
-                new BigDecimal("300000"), true));
+                new BigDecimal("300000"), true, LocalDate.now().minusDays(20)));   // new policy: early claims get flagged
         patientService.createPatient(new CreatePatientRequest(
                 "Amit Verma", "amit.verma@example.com", "+91 98100 00003", "POL1003",
-                new BigDecimal("200000"), false));
+                new BigDecimal("200000"), false, LocalDate.now().minusYears(1)));
         log.info("Seeded 3 demo patients (Amit's policy is inactive on purpose)");
     }
 }

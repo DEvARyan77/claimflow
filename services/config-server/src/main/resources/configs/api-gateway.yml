@@ -32,6 +32,11 @@ spring:
               predicates:
                 - Path=/notifications/**
 
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/auth/**
+
             - id: policy-assistant-service
               uri: lb://policy-assistant-service
               predicates:

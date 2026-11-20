@@ -1,6 +1,8 @@
 package com.claimflow.patient.service;
 
 import com.claimflow.patient.dto.CreatePatientRequest;
+import com.claimflow.patient.dto.EnrolRequest;
+import com.claimflow.patient.dto.ProfileRequest;
 import com.claimflow.patient.entity.Patient;
 import com.claimflow.patient.exception.DuplicatePatientException;
 import com.claimflow.patient.exception.InsufficientCoverageException;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.List;
 
 @Service
@@ -32,6 +36,7 @@ public class PatientService {
         patient.setCoverageLimit(request.coverageLimit());
         patient.setPolicyActive(request.policyActive() == null || request.policyActive());
         patient.setUsedAmount(BigDecimal.ZERO);
+        patient.setPolicyStartDate(request.policyStartDate() != null ? request.policyStartDate() : LocalDate.now());
         patient.setCreatedAt(Instant.now());
         try {
             return patientRepository.save(patient);
@@ -44,6 +49,39 @@ public class PatientService {
     public Patient getPatient(String id) {
         return patientRepository.findById(id)
                 .orElseThrow(() -> new PatientNotFoundException(id));
+    }
+
+    public Patient getByPolicyNumber(String policyNumber) {
+        return patientRepository.findByPolicyNumberIgnoreCase(policyNumber.trim())
+                .orElseThrow(() -> new PatientNotFoundException("policy " + policyNumber));
+    }
+
+    /**
+     * A new policyholder signs up without an existing policy: issue a demo policy
+     * (₹5,00,000 cover, starting today) with a fresh policy number.
+     */
+    public Patient enrol(EnrolRequest request) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            String number = "POL" + ThreadLocalRandom.current().nextInt(200000, 999999);
+            if (patientRepository.existsByEmailOrPolicyNumber("", number)) continue;
+            return createPatient(new CreatePatientRequest(request.name(), request.email(), request.phone(), number,
+                    new BigDecimal("500000"), true, LocalDate.now()));
+        }
+        throw new IllegalStateException("Couldn't issue a policy number, please try again");
+    }
+
+    public Patient updateProfile(String id, ProfileRequest request) {
+        Patient patient = getPatient(id);
+        if (request.name() != null && !request.name().isBlank()) patient.setName(request.name().trim());
+        patient.setPhone(blankToNull(request.phone()));
+        patient.setAddress(blankToNull(request.address()));
+        patient.setDateOfBirth(request.dateOfBirth());
+        patient.setGender(blankToNull(request.gender()));
+        return patientRepository.save(patient);
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
     }
 
     public List<Patient> getAllPatients() {

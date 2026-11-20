@@ -13,5 +13,13 @@
 
     <artifactId>claimflow-events</artifactId>
     <packaging>jar</packaging>
-    <description>Shared message contract (event + exchange/queue names) used by claims, payment and notification services</description>
+    <description>Shared contracts: RabbitMQ events and names, and the JWT format used by the gateway and auth-service</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

@@ -15,6 +15,10 @@
     <description>Single entry point: routes /patients, /providers, /claims, /payments, /notifications to the right service</description>
 
     <dependencies>
+        <dependency>
+            <groupId>com.claimflow</groupId>
+            <artifactId>claimflow-events</artifactId>
+        </dependency>
         <!-- Reactive (WebFlux) gateway. Do NOT add spring-boot-starter-webmvc to this module. -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -31,6 +35,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

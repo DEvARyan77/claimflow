@@ -7,6 +7,10 @@ package com.claimflow.events;
  *   claim.submitted / claim.approved / claim.rejected / claim.paid
  *     -> notification.queue  (binding "claim.*": every status change)
  *     -> payment.queue       (binding "claim.approved": only approved claims get paid)
+ *
+ * account.exchange (topic)
+ *   account.welcome / account.staff_created / account.password_reset / account.password_changed
+ *     -> account-notification.queue (binding "account.*")
  */
 public final class Messaging {
 
@@ -17,6 +21,10 @@ public final class Messaging {
 
     public static final String ALL_CLAIM_EVENTS = "claim.*";
     public static final String CLAIM_APPROVED = "claim.approved";
+
+    public static final String ACCOUNT_EXCHANGE = "account.exchange";
+    public static final String ACCOUNT_NOTIFICATION_QUEUE = "account-notification.queue";
+    public static final String ALL_ACCOUNT_EVENTS = "account.*";
 
     private Messaging() {
     }

@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 /** A policyholder, stored in the "patients" collection of patient_db. */
 @Document("patients")
@@ -39,6 +40,14 @@ public class Patient {
 
     @Field(targetType = FieldType.DECIMAL128)
     private BigDecimal usedAmount;             // already used by approved claims
+
+    /** When cover started. Claims soon after this date get a closer look (fraud check). */
+    private LocalDate policyStartDate;
+
+    // Profile details the policyholder can edit
+    private String address;
+    private LocalDate dateOfBirth;
+    private String gender;
 
     private Instant createdAt;
 

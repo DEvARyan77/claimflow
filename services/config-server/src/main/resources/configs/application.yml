@@ -31,6 +31,12 @@ spring:
       representation:
         big-decimal: decimal128        # money stays exact (Decimal128), never a double
 
+claimflow:
+  auth:
+    # Signs the login tokens (auth-service) and checks them (api-gateway): both read this one value.
+    # Set JWT_SECRET to a long random string in any real deployment.
+    jwt-secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+
 management:
   endpoints:
     web:

@@ -28,6 +28,12 @@ public class ProviderController {
         return providerService.getProvider(id);
     }
 
+    /** Internal: auth-service links a hospital login to its hospital at start-up. */
+    @GetMapping("/by-registration/{registrationNumber}")
+    public Provider getByRegistration(@PathVariable String registrationNumber) {
+        return providerService.getByRegistrationNumber(registrationNumber);
+    }
+
     @PostMapping
     public ResponseEntity<Provider> create(@Valid @RequestBody CreateProviderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(providerService.createProvider(request));

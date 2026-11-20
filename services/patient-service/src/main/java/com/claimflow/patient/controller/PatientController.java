@@ -1,6 +1,8 @@
 package com.claimflow.patient.controller;
 
 import com.claimflow.patient.dto.CreatePatientRequest;
+import com.claimflow.patient.dto.EnrolRequest;
+import com.claimflow.patient.dto.ProfileRequest;
 import com.claimflow.patient.dto.UsedAmountRequest;
 import com.claimflow.patient.entity.Patient;
 import com.claimflow.patient.service.PatientService;
@@ -32,6 +34,24 @@ public class PatientController {
     @PostMapping
     public ResponseEntity<Patient> create(@Valid @RequestBody CreatePatientRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(patientService.createPatient(request));
+    }
+
+    /** Hospitals look a patient up by policy number for a cashless claim; auth-service uses it at sign-up. */
+    @GetMapping("/by-policy/{policyNumber}")
+    public Patient getByPolicy(@PathVariable String policyNumber) {
+        return patientService.getByPolicyNumber(policyNumber);
+    }
+
+    /** Internal: auth-service issues a demo policy to someone who signs up without one. */
+    @PostMapping("/enrol")
+    public ResponseEntity<Patient> enrol(@Valid @RequestBody EnrolRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(patientService.enrol(request));
+    }
+
+    /** The policyholder edits their own details (the gateway only allows their own id). */
+    @PatchMapping("/{id}/profile")
+    public Patient updateProfile(@PathVariable String id, @Valid @RequestBody ProfileRequest request) {
+        return patientService.updateProfile(id, request);
     }
 
     /** Internal: used by claims-service after approving a claim. */
