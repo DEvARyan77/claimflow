@@ -1,6 +1,9 @@
 import samplePolicyText from './sample-policy.txt?raw';
 import { chunkPages, extractProfileFromText, parseClauses, retrieveForPrecheck, retrieveForQuestion } from './policyBrain.js';
-import { API_URL, apiHealth, callApi, imageToBase64, wakeApi } from './aiClient.js';
+import { API_URL, aiOff, apiHealth, callApi, imageToBase64, wakeApi } from './aiClient.js';
+
+/** Calls an AI route, unless the visitor switched live AI off (then the caller uses RAG only). */
+const callAi = (path, body, options) => (aiOff() ? Promise.resolve({ ok: false, reason: 'disabled' }) : callApi(path, body, options));
 
 /**
  * The free demo site has no servers, so this file plays the part of all 9 microservices, in the browser.
@@ -184,7 +187,9 @@ async function emailFor(claim, status, notification) {
 function preparedBecause(local, result) {
   if (result.reason === 'off') return local;
   const why =
-    result.reason === 'waking'
+    result.reason === 'disabled'
+      ? "Live AI is off, so this answer comes straight from your policy's clauses (RAG search, no AI)."
+      : result.reason === 'waking'
       ? 'The live AI (Gemini) is waking up on its free server, about a minute. Here is a prepared answer; ask again shortly for a live one.'
       : `The live AI didn't answer${result.message ? ` (${result.message})` : ''}, so here is a prepared answer.`;
   return { ...local, note: local.note ? `${why} ${local.note}` : why };
@@ -304,6 +309,7 @@ const routes = [
       await Promise.race([wakeApi(), wait(1500)]);
       const h = apiHealth();
       const base = { documents: db.documents.length, chunks: 0, chunksWaitingForEmbedding: 0, embeddingModel: 'keyword search in your browser' };
+      if (aiOff()) return { ...base, provider: 'rag', aiEnabled: false, aiOff: true, chatModel: null };
       return h?.ai
         ? { ...base, provider: 'gemini', aiEnabled: true, chatModel: h.model }
         : { ...base, provider: 'demo', aiEnabled: false, chatModel: null, waking: Boolean(API_URL) };
@@ -336,7 +342,8 @@ const routes = [
       const file = await fileFrom(form);
       if (isImage(file)) {
         if (!API_URL) await readDocument(file); // throws the "photos need AI" message
-        const result = await callApi('/extract-profile', { image: { mimeType: 'image/jpeg', base64: await imageToBase64(file) } }, { coldTimeout: 20_000 });
+        if (aiOff()) throw new DemoError(400, 'Reading a photo needs live AI, which is switched off. Turn AI on (top bar), or upload the PDF.');
+        const result = await callAi('/extract-profile', { image: { mimeType: 'image/jpeg', base64: await imageToBase64(file) } }, { coldTimeout: 20_000 });
         if (result.ok) return result.data;
         throw new DemoError(
           503,
@@ -348,8 +355,8 @@ const routes = [
       const pages = await readDocument(file);
       const text = pages.slice(0, 4).join('\n');
       const local = extractProfileFromText(text);
-      if (apiHealth()?.ai) {
-        const result = await callApi('/extract-profile', { text }, { awakeTimeout: 30_000 });
+      if (apiHealth()?.ai && !aiOff()) {
+        const result = await callAi('/extract-profile', { text }, { awakeTimeout: 30_000 });
         if (result.ok) {
           const merged = { ...result.data };
           for (const key of ['name', 'email', 'phone', 'policyNumber', 'coverageLimit']) merged[key] ??= local[key];
@@ -380,7 +387,7 @@ const routes = [
       const question = body.question.trim();
       const { local, sources } = retrieveForQuestion(question, doc, db.clauses[doc.id] ?? []);
       if (!sources.length) return local;
-      const result = await callApi('/ask', { question, documentTitle: doc.title, sources });
+      const result = await callAi('/ask', { question, documentTitle: doc.title, sources });
       if (result.ok) return { answer: result.data.answer, mode: 'ai', note: null, sources };
       return preparedBecause(local, result);
     },
@@ -393,7 +400,7 @@ const routes = [
       const provider = db.providers.find((p) => p.name === body?.hospitalName);
       const input = { ...body, inNetwork: provider ? provider.inNetwork : undefined };
       const { local, sources } = retrieveForPrecheck(input, doc, db.clauses[doc.id] ?? sampleClauses);
-      const result = await callApi('/precheck', { ...input, documentTitle: doc.title, sources });
+      const result = await callAi('/precheck', { ...input, documentTitle: doc.title, sources });
       if (result.ok) return { answer: result.data.answer, mode: 'ai', note: null, sources };
       return preparedBecause(local, result);
     },
