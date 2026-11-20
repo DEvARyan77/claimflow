@@ -1,16 +1,16 @@
 package com.claimflow.payment.repository;
 
 import com.claimflow.payment.entity.Payment;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface PaymentRepository extends JpaRepository<Payment, Long> {
+public interface PaymentRepository extends MongoRepository<Payment, String> {
 
-    Optional<Payment> findByClaimId(Long claimId);
+    Optional<Payment> findByClaimId(String claimId);
 
-    List<Payment> findByPatientIdOrderByPaidAtDesc(Long patientId);
+    List<Payment> findByPatientIdOrderByPaidAtDesc(String patientId);
 
     List<Payment> findAllByOrderByPaidAtDesc();
 }

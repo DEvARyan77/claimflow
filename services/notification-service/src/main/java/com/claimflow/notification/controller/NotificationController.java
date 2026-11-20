@@ -23,7 +23,7 @@ public class NotificationController {
     }
 
     @GetMapping("/patient/{patientId}")
-    public List<Notification> getByPatient(@PathVariable Long patientId) {
+    public List<Notification> getByPatient(@PathVariable String patientId) {
         return notificationRepository.findByPatientIdOrderBySentAtDesc(patientId);
     }
 }

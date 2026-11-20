@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface PatientClient {
 
     @GetMapping("/patients/{id}")
-    PatientDto getPatient(@PathVariable("id") Long id);
+    PatientDto getPatient(@PathVariable("id") String id);
 
     @PostMapping("/patients/{id}/used-amount")
-    PatientDto addUsedAmount(@PathVariable("id") Long id, @RequestBody UsedAmountRequest request);
+    PatientDto addUsedAmount(@PathVariable("id") String id, @RequestBody UsedAmountRequest request);
 }

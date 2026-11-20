@@ -8,9 +8,10 @@ import java.math.BigDecimal;
  * Keeping it in one shared module guarantees sender and receivers agree on the fields.
  */
 public record ClaimEvent(
-        Long claimId,
-        Long patientId,
-        Long providerId,
+        String claimId,
+        String claimNumber,    // readable number for people, e.g. CLM-2026-000123
+        String patientId,
+        String providerId,
         BigDecimal amount,
         String status,
         String reason,

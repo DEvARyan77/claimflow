@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class ClaimNotFoundException extends RuntimeException {
-    public ClaimNotFoundException(Long id) {
+    public ClaimNotFoundException(String id) {
         super("Claim not found with id: " + id);
     }
 }

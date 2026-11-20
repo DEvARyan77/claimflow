@@ -12,7 +12,7 @@ class ClaimRulesTest {
 
     private static PatientDto patient(boolean active, String limit, String used) {
         PatientDto p = new PatientDto();
-        p.setId(1L);
+        p.setId("64b7f0c2a1b2c3d4e5f60718");
         p.setName("Rahul Sharma");
         p.setPolicyActive(active);
         p.setCoverageLimit(new BigDecimal(limit));
@@ -22,7 +22,7 @@ class ClaimRulesTest {
 
     private static ProviderDto provider(boolean inNetwork) {
         ProviderDto p = new ProviderDto();
-        p.setId(1L);
+        p.setId("64b7f0c2a1b2c3d4e5f60718");
         p.setName("Apollo Hospital");
         p.setInNetwork(inNetwork);
         return p;

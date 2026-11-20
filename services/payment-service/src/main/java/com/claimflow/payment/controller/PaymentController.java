@@ -22,13 +22,13 @@ public class PaymentController {
     }
 
     @GetMapping("/claim/{claimId}")
-    public Payment getByClaim(@PathVariable Long claimId) {
+    public Payment getByClaim(@PathVariable String claimId) {
         return paymentRepository.findByClaimId(claimId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No payment yet for claim " + claimId));
     }
 
     @GetMapping("/patient/{patientId}")
-    public List<Payment> getByPatient(@PathVariable Long patientId) {
+    public List<Payment> getByPatient(@PathVariable String patientId) {
         return paymentRepository.findByPatientIdOrderByPaidAtDesc(patientId);
     }
 }

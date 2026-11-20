@@ -24,7 +24,7 @@ public class VerificationClient {
     private final ProviderClient providerClient;
     private final CircuitBreakerFactory<?, ?> circuitBreakerFactory;
 
-    public Optional<PatientDto> findPatient(Long patientId) {
+    public Optional<PatientDto> findPatient(String patientId) {
         return circuitBreakerFactory.create("patient-service").run(
                 () -> {
                     try {
@@ -38,7 +38,7 @@ public class VerificationClient {
                 });
     }
 
-    public Optional<ProviderDto> findProvider(Long providerId) {
+    public Optional<ProviderDto> findProvider(String providerId) {
         return circuitBreakerFactory.create("provider-service").run(
                 () -> {
                     try {
@@ -53,7 +53,7 @@ public class VerificationClient {
     }
 
     /** @return true if the coverage was reserved, false if the patient no longer has enough (409). */
-    public boolean reserveCoverage(Long patientId, BigDecimal amount) {
+    public boolean reserveCoverage(String patientId, BigDecimal amount) {
         return circuitBreakerFactory.create("patient-service").run(
                 () -> {
                     try {

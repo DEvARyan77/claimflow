@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PatientDto {
-    private Long id;
+    private String id;
     private String name;
     private Boolean policyActive;
     private BigDecimal coverageLimit;

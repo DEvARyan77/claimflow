@@ -30,18 +30,18 @@ public class ClaimController {
     }
 
     @GetMapping("/{id}")
-    public Claim getById(@PathVariable Long id) {
+    public Claim getById(@PathVariable String id) {
         return claimService.getClaim(id);
     }
 
     @GetMapping("/patient/{patientId}")
-    public List<Claim> getByPatient(@PathVariable Long patientId) {
+    public List<Claim> getByPatient(@PathVariable String patientId) {
         return claimService.getClaimsByPatient(patientId);
     }
 
     /** Internal: used by payment-service. */
     @PostMapping("/{id}/mark-paid")
-    public Claim markPaid(@PathVariable Long id, @RequestBody MarkPaidRequest request) {
+    public Claim markPaid(@PathVariable String id, @RequestBody MarkPaidRequest request) {
         return claimService.markPaid(id, request.paymentReference());
     }
 }

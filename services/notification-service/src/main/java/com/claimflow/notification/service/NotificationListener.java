@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +39,8 @@ public class NotificationListener {
         Notification notification = new Notification();
         notification.setPatientId(event.patientId());
         notification.setClaimId(event.claimId());
+        notification.setClaimNumber(event.claimNumber());
+        notification.setSentAt(LocalDateTime.now());
         notification.setClaimStatus(event.status());
         notification.setMessage(message);
         notification.setChannel("IN_APP");
@@ -85,7 +88,7 @@ public class NotificationListener {
     }
 
     static String buildMessage(ClaimEvent event) {
-        String claim = "claim #" + event.claimId();
+        String claim = "claim " + number(event);
         String amount = "₹" + format(event.amount());
         return switch (event.status()) {
             case "SUBMITTED" -> "We received your " + claim + " of " + amount + ". Verification will finish shortly.";
@@ -98,11 +101,11 @@ public class NotificationListener {
 
     private static String subject(ClaimEvent event) {
         return switch (event.status()) {
-            case "SUBMITTED" -> "We received your claim #" + event.claimId();
-            case "APPROVED" -> "Claim #" + event.claimId() + " approved";
-            case "REJECTED" -> "Claim #" + event.claimId() + " was not approved";
-            case "PAID" -> "Claim #" + event.claimId() + " paid to the hospital";
-            default -> "Update on claim #" + event.claimId();
+            case "SUBMITTED" -> "We received your claim " + number(event);
+            case "APPROVED" -> "Claim " + number(event) + " approved";
+            case "REJECTED" -> "Claim " + number(event) + " was not approved";
+            case "PAID" -> "Claim " + number(event) + " paid to the hospital";
+            default -> "Update on claim " + number(event);
         } + " · ClaimFlow";
     }
 
@@ -114,6 +117,11 @@ public class NotificationListener {
             case "PAID" -> "Hospital paid";
             default -> "Claim update";
         };
+    }
+
+    /** The readable claim number; falls back to the id for events sent before claim numbers existed. */
+    static String number(ClaimEvent event) {
+        return event.claimNumber() != null ? event.claimNumber() : "#" + event.claimId();
     }
 
     private static String format(BigDecimal value) {

@@ -1,40 +1,45 @@
 package com.claimflow.claims.entity;
 
-import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "claims")
+/** A claim, stored in the "claims" collection of claims_db. */
+@Document("claims")
+@CompoundIndex(name = "status_createdAt", def = "{'status': 1, 'createdAt': 1}") // retry job: SUBMITTED + older than
 @Data
 @NoArgsConstructor
 public class Claim {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
+
+    /** Readable number shown to people, e.g. CLM-2026-000123 (the id is a 24-character ObjectId). */
+    @Indexed(unique = true)
+    private String claimNumber;
 
     // Only IDs: patient and hospital data belong to other services (database-per-service)
-    @Column(nullable = false)
-    private Long patientId;
+    @Indexed
+    private String patientId;
 
-    @Column(nullable = false)
-    private Long providerId;
+    private String providerId;
 
-    @Column(nullable = false)
     private String diagnosisCode;      // ICD-10 code, e.g. I21 = heart attack
 
     private String description;
 
-    @Column(nullable = false, precision = 14, scale = 2)
+    @Field(targetType = FieldType.DECIMAL128)
     private BigDecimal amount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ClaimStatus status;
+    private ClaimStatus status;        // stored as its name, e.g. "APPROVED"
 
     private String reason;             // why it was rejected / why it is still pending
 
@@ -45,10 +50,4 @@ public class Claim {
     private LocalDateTime createdAt;
     private LocalDateTime decidedAt;
     private LocalDateTime paidAt;
-
-    @PrePersist
-    void setDefaults() {
-        if (status == null) status = ClaimStatus.SUBMITTED;
-        createdAt = LocalDateTime.now();
-    }
 }

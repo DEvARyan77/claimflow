@@ -10,8 +10,8 @@ import java.math.BigDecimal;
 
 /** What the frontend / Postman sends to POST /claims */
 public record ClaimRequest(
-        @NotNull Long patientId,
-        @NotNull Long providerId,
+        @NotNull String patientId,
+        @NotNull String providerId,
         @NotBlank @Size(max = 10) String diagnosisCode,
         @Size(max = 255) String description,
         @NotNull @Positive BigDecimal amount,

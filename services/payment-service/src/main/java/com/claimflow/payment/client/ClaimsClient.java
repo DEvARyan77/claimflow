@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface ClaimsClient {
 
     @PostMapping("/claims/{id}/mark-paid")
-    void markPaid(@PathVariable("id") Long claimId, @RequestBody MarkPaidRequest request);
+    void markPaid(@PathVariable("id") String claimId, @RequestBody MarkPaidRequest request);
 
     record MarkPaidRequest(String paymentReference) {
     }

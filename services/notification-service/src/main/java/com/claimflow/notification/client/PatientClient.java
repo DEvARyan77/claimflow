@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface PatientClient {
 
     @GetMapping("/patients/{id}")
-    PatientContact getPatient(@PathVariable("id") Long id);
+    PatientContact getPatient(@PathVariable("id") String id);
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record PatientContact(Long id, String name, String email) {
+    record PatientContact(String id, String name, String email) {
     }
 }

@@ -20,6 +20,7 @@ public class ClaimEventPublisher {
     public void publish(Claim claim) {
         ClaimEvent event = new ClaimEvent(
                 claim.getId(),
+                claim.getClaimNumber(),
                 claim.getPatientId(),
                 claim.getProviderId(),
                 claim.getAmount(),
@@ -29,7 +30,7 @@ public class ClaimEventPublisher {
         String routingKey = Messaging.routingKeyFor(claim.getStatus().name());
         try {
             rabbitTemplate.convertAndSend(Messaging.EXCHANGE, routingKey, event);
-            log.info("Published {} for claim {}", routingKey, claim.getId());
+            log.info("Published {} for claim {}", routingKey, claim.getClaimNumber());
         } catch (AmqpException e) {
             // RabbitMQ being down must not fail the claim itself
             log.error("Could not publish {} for claim {}: {}", routingKey, claim.getId(), e.getMessage());

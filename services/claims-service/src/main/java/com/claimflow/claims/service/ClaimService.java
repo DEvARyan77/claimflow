@@ -12,7 +12,6 @@ import com.claimflow.claims.repository.ClaimRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,6 +37,8 @@ public class ClaimService {
         claim.setExtraEmail(request.extraEmail() == null || request.extraEmail().isBlank()
                 ? null : request.extraEmail().trim().toLowerCase());
         claim.setStatus(ClaimStatus.SUBMITTED);
+        claim.setCreatedAt(LocalDateTime.now());
+        claim.setClaimNumber(claimRepository.nextClaimNumber(claim.getCreatedAt().getYear()));
         claim = claimRepository.save(claim);
 
         decide(claim);
@@ -52,7 +53,7 @@ public class ClaimService {
         if (claim.getStatus() != ClaimStatus.SUBMITTED) {
             claimRepository.save(claim);
             eventPublisher.publish(claim);
-            log.info("Pending claim {} is now {}", claim.getId(), claim.getStatus());
+            log.info("Pending claim {} is now {}", claim.getClaimNumber(), claim.getStatus());
         }
     }
 
@@ -72,7 +73,7 @@ public class ClaimService {
                 markDecided(claim, ClaimStatus.REJECTED, "Coverage limit exceeded");
             }
         } catch (DependencyUnavailableException e) {
-            log.warn("Claim {} kept SUBMITTED: {}", claim.getId(), e.getMessage());
+            log.warn("Claim {} kept SUBMITTED: {}", claim.getClaimNumber(), e.getMessage());
             claim.setStatus(ClaimStatus.SUBMITTED);
             claim.setReason("Verification pending: " + e.getServiceName() + " is unavailable. We'll retry automatically.");
         }
@@ -84,29 +85,31 @@ public class ClaimService {
         claim.setDecidedAt(LocalDateTime.now());
     }
 
-    /** Called by payment-service once the hospital is paid. Safe to call twice. */
-    @Transactional
-    public Claim markPaid(Long claimId, String paymentReference) {
-        Claim claim = getClaim(claimId);
-        if (claim.getStatus() == ClaimStatus.PAID) {
-            return claim;
-        }
-        if (claim.getStatus() != ClaimStatus.APPROVED) {
-            throw new InvalidClaimStateException("Only APPROVED claims can be paid; claim " + claimId + " is " + claim.getStatus());
-        }
-        claim.setStatus(ClaimStatus.PAID);
-        claim.setPaymentReference(paymentReference);
-        claim.setPaidAt(LocalDateTime.now());
-        claimRepository.save(claim);
-        eventPublisher.publish(claim);
-        return claim;
+    /**
+     * Called by payment-service once the hospital is paid. Safe to call twice: APPROVED → PAID is
+     * one atomic conditional update, so a repeated call can never publish "paid" a second time.
+     */
+    public Claim markPaid(String claimId, String paymentReference) {
+        return claimRepository.markPaidIfApproved(claimId, paymentReference)
+                .map(paid -> {
+                    eventPublisher.publish(paid);
+                    return paid;
+                })
+                .orElseGet(() -> {
+                    Claim claim = getClaim(claimId);
+                    if (claim.getStatus() == ClaimStatus.PAID) {
+                        return claim;              // already paid: nothing to do
+                    }
+                    throw new InvalidClaimStateException("Only APPROVED claims can be paid; claim "
+                            + claim.getClaimNumber() + " is " + claim.getStatus());
+                });
     }
 
-    public Claim getClaim(Long id) {
+    public Claim getClaim(String id) {
         return claimRepository.findById(id).orElseThrow(() -> new ClaimNotFoundException(id));
     }
 
-    public List<Claim> getClaimsByPatient(Long patientId) {
+    public List<Claim> getClaimsByPatient(String patientId) {
         return claimRepository.findByPatientIdOrderByCreatedAtDesc(patientId);
     }
 

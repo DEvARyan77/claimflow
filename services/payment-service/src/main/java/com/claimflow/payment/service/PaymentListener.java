@@ -9,8 +9,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -36,22 +38,33 @@ public class PaymentListener {
 
         Payment payment = paymentRepository.findByClaimId(event.claimId())
                 .orElseGet(() -> pay(event));
+        if (payment == null) {
+            return;                       // another delivery of this message is paying it right now
+        }
 
         // If this call fails, the listener retries the message (see payment-service.yml)
         claimsClient.markPaid(event.claimId(), new ClaimsClient.MarkPaidRequest(payment.getReference()));
         log.info("Paid ₹{} to provider {} for claim {} ({})",
-                payment.getAmount(), payment.getProviderId(), payment.getClaimId(), payment.getReference());
+                payment.getAmount(), payment.getProviderId(), payment.getClaimNumber(), payment.getReference());
     }
 
     private Payment pay(ClaimEvent event) {
         simulateBankTransfer();
         Payment payment = new Payment();
         payment.setClaimId(event.claimId());
+        payment.setClaimNumber(event.claimNumber());
         payment.setPatientId(event.patientId());
         payment.setProviderId(event.providerId());
         payment.setAmount(event.amount());
         payment.setReference("PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        return paymentRepository.save(payment);
+        payment.setPaidAt(LocalDateTime.now());
+        try {
+            return paymentRepository.save(payment);
+        } catch (DuplicateKeyException e) {
+            // The unique index on claimId stopped a second payment for the same claim.
+            log.warn("Claim {} is already paid; skipping duplicate payment", event.claimNumber());
+            return paymentRepository.findByClaimId(event.claimId()).orElse(null);
+        }
     }
 
     private void simulateBankTransfer() {

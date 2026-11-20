@@ -8,5 +8,5 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface ProviderClient {
 
     @GetMapping("/providers/{id}")
-    ProviderDto getProvider(@PathVariable("id") Long id);
+    ProviderDto getProvider(@PathVariable("id") String id);
 }
