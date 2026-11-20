@@ -3,7 +3,6 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react
 import { api } from './api.js';
 import { useSession } from './session.jsx';
 import Header from './components/Header.jsx';
-import DemoBanner from './components/DemoBanner.jsx';
 import ChoosePatient from './pages/ChoosePatient.jsx';
 import MyClaims from './pages/MyClaims.jsx';
 import NewClaim from './pages/NewClaim.jsx';
@@ -60,7 +59,6 @@ function SignedInLayout() {
 
   return (
     <div className="app">
-      <DemoBanner />
       <Header patient={patient} />
       <main className="container page-enter" id="main" key={pathname}>
         {error && !patient && (
