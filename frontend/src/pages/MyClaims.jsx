@@ -207,7 +207,7 @@ function announceChanges(claimList, messageList, lastStatuses, seenMessages) {
         if (n.channel === 'EMAIL' && n.deliveryStatus === 'SENT') {
           toast({ type: 'info', title: 'Email sent', message: `Update for claim #${n.claimId} sent to ${n.recipient}.` });
         } else if (n.deliveryStatus === 'FAILED') {
-          toast({ type: 'warning', title: "Email couldn't be sent", message: 'Check MAIL_USERNAME and MAIL_PASSWORD in your .env file.' });
+          toast({ type: 'warning', title: "Email couldn't be sent", message: `The update for claim #${n.claimId} is saved here, but the email didn't go out.` });
         }
       });
   }
