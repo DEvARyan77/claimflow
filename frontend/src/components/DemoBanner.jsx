@@ -1,4 +1,5 @@
 import { IS_DEMO, REPO_URL, resetDemoData } from '../demo/isDemo.js';
+import { API_URL } from '../demo/aiClient.js';
 
 /** Thin bar on the free demo site explaining that everything runs in the browser. */
 export default function DemoBanner() {
@@ -6,7 +7,9 @@ export default function DemoBanner() {
   return (
     <div className="demo-banner" role="note">
       <span>
-        <strong>Live demo</strong> · runs in your browser with sample data. The full version is 9 Spring Boot microservices.
+        <strong>Live demo</strong> · sample patients and claims are saved in your browser
+        {API_URL ? '; AI answers and emails come from Gemini and Brevo through a Node.js API' : ''}. The full version is 9 Spring
+        Boot microservices.
       </span>
       <span className="demo-banner-actions">
         {REPO_URL && (
