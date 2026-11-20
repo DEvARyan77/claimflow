@@ -85,7 +85,9 @@
 
 * { box-sizing: border-box; }
 
-html, body { margin: 0; }
+html, body { margin: 0; max-width: 100%; overflow-x: hidden; }
+/* clip hides sideways overflow without breaking the sticky header (older browsers use hidden) */
+@supports (overflow-x: clip) { html, body { overflow-x: clip; } }
 
 body {
   font-family: Manrope, system-ui, -apple-system, 'Segoe UI', sans-serif;
