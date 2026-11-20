@@ -2,10 +2,8 @@ server:
   port: 8085
 
 spring:
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/notification_db
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+  mongodb:
+    database: notification_db
   rabbitmq:
     listener:
       simple:

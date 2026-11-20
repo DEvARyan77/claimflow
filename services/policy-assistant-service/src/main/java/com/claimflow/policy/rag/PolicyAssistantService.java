@@ -108,7 +108,7 @@ public class PolicyAssistantService {
     }
 
     /** Prefer the AI provider's embeddings (they understand meaning); fall back to the local ones. */
-    private List<ChunkHit> retrieve(String query, long documentId) {
+    private List<ChunkHit> retrieve(String query, String documentId) {
         int k = ragProperties.topKOrDefault();
         if (llmClient.isEnabled()) {
             try {
@@ -148,7 +148,7 @@ public class PolicyAssistantService {
                 "search", note, top);
     }
 
-    private DocumentSummary resolveDocument(Long documentId) {
+    private DocumentSummary resolveDocument(String documentId) {
         if (documentId != null) {
             return repository.findDocument(documentId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Policy document " + documentId + " not found"));

@@ -7,13 +7,12 @@ import com.claimflow.policy.rag.TextChunker.Chunk;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * RAG step 1 (indexing): file → pages of text → chunks → embeddings → PostgreSQL (pgvector).
+ * RAG step 1 (indexing): file → pages of text → chunks → embeddings → MongoDB (policy_db).
  */
 @Slf4j
 @Service
@@ -25,7 +24,6 @@ public class PolicyIngestionService {
     private final LlmClient llmClient;
     private final PolicyRepository repository;
 
-    @Transactional
     public DocumentSummary ingest(String title, String fileName, String policyNumber, byte[] content, boolean sample) {
         List<String> pages = extractor.extractPages(fileName, content);
         List<Chunk> chunks = chunker.chunk(pages);
@@ -43,7 +41,7 @@ public class PolicyIngestionService {
                     modelEmbeddings == null ? null : llmClient.embeddingModel()));
         }
 
-        long id = repository.insertDocument(title, fileName, blankToNull(policyNumber), sample, pages.size(), rows.size());
+        String id = repository.insertDocument(title, fileName, blankToNull(policyNumber), sample, pages.size(), rows.size());
         repository.insertChunks(id, rows);
         log.info("Indexed '{}': {} pages, {} chunks, model embeddings: {}",
                 title, pages.size(), rows.size(), modelEmbeddings != null);

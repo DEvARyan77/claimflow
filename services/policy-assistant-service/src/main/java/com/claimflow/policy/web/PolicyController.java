@@ -39,7 +39,7 @@ public class PolicyController {
     }
 
     @GetMapping("/{id}")
-    public DocumentSummary get(@PathVariable long id) {
+    public DocumentSummary get(@PathVariable String id) {
         return repository.findDocument(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Policy document " + id + " not found"));
     }
@@ -60,7 +60,7 @@ public class PolicyController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable long id) {
+    public ResponseEntity<Void> delete(@PathVariable String id) {
         if (!repository.deleteUploadedDocument(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No uploaded document " + id + " (the sample can't be deleted)");
         }

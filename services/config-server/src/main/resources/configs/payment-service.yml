@@ -2,10 +2,8 @@ server:
   port: 8084
 
 spring:
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/payment_db
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+  mongodb:
+    database: payment_db
   rabbitmq:
     listener:
       simple:

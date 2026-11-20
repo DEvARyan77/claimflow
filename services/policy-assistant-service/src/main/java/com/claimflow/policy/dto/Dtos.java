@@ -16,7 +16,7 @@ public final class Dtos {
     }
 
     public record DocumentSummary(
-            long id,
+            String id,
             String title,
             String fileName,
             String policyNumber,
@@ -28,12 +28,12 @@ public final class Dtos {
 
     public record AskRequest(
             @NotBlank @Size(max = 1000) String question,
-            Long documentId) {
+            String documentId) {
     }
 
     /** "Will this claim be covered?" asked before submitting it. */
     public record PrecheckRequest(
-            Long documentId,
+            String documentId,
             @NotBlank String diagnosisCode,
             String diagnosisLabel,
             @NotNull @Positive BigDecimal amount,
@@ -44,7 +44,7 @@ public final class Dtos {
     /** One policy passage used for an answer. "number" matches the [1], [2] citations in the answer. */
     public record Source(
             int number,
-            long documentId,
+            String documentId,
             String documentTitle,
             int page,
             String excerpt,

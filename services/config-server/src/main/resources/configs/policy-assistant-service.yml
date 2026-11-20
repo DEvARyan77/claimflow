@@ -2,14 +2,8 @@ server:
   port: 8086
 
 spring:
-  datasource:
-    # stringtype=unspecified lets PostgreSQL turn the text "[0.1,0.2,...]" into a pgvector value
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/policy_db?stringtype=unspecified
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
-  sql:
-    init:
-      mode: always          # runs schema.sql (creates the pgvector extension and tables)
+  mongodb:
+    database: policy_db
   servlet:
     multipart:
       max-file-size: 20MB
