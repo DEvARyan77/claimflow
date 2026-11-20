@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Navigate, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { api } from './api.js';
 import { useSession } from './session.jsx';
 import Header from './components/Header.jsx';
@@ -34,6 +34,7 @@ export default function App() {
 function SignedInLayout() {
   const { patientId, signOut } = useSession();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [patient, setPatient] = useState(null);
   const [error, setError] = useState(null);
 
@@ -61,7 +62,7 @@ function SignedInLayout() {
     <div className="app">
       <DemoBanner />
       <Header patient={patient} />
-      <main className="container" id="main">
+      <main className="container page-enter" id="main" key={pathname}>
         {error && !patient && (
           <div className="banner banner-error" role="alert">
             <p>{error}</p>
