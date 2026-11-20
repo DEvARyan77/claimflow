@@ -82,7 +82,7 @@ export default function ChoosePatient() {
       <ThemeToggle className="welcome-theme" />
       <div className={`welcome-grid${isPhone ? ` show-${tab}` : ''}`}>
         {isPhone && (
-          <div className="welcome-tabs" role="tablist" aria-label="Choose how to start">
+          <div className="welcome-tabs" role="tablist" aria-label="Choose how to start" data-active={tab}>
             <button type="button" role="tab" id="tab-pick" aria-selected={tab === 'pick'} aria-controls="panel-pick" onClick={() => setTab('pick')}>
               Pick a patient
             </button>
@@ -99,7 +99,7 @@ export default function ChoosePatient() {
           <h1>Welcome</h1>
           <p className="lead">
             {IS_DEMO
-              ? 'Live demo: everything runs in your browser with sample data. Pick a patient, or set one up from a policy.'
+              ? 'Live demo with sample data and real AI. Pick a patient, or set one up from your policy PDF or photo.'
               : 'This is a demo with no passwords. Pick a patient to see their claims.'}
           </p>
           {IS_DEMO && (
@@ -189,8 +189,8 @@ export default function ChoosePatient() {
           )}
 
           <ul className="patient-list" aria-live="polite" ref={listRef}>
-            {shown.map((p) => (
-              <li key={p.id}>
+            {shown.map((p, i) => (
+              <li key={p.id} style={{ '--i': Math.min(i, 8) }}>
                 <button type="button" className="patient-option" onClick={() => choose(p.id)}>
                   <span className="avatar avatar-static" aria-hidden="true">
                     {initials(p.name)}
