@@ -663,3 +663,109 @@ mark { background: var(--pill-accent-bg); color: inherit; border-radius: 4px; pa
 .welcome-grid.show-new .welcome-card { display: none; }
 .welcome-grid.show-pick, .welcome-grid.show-new { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
 .chat-fab { gap: 7px; padding: 0 20px 0 17px; }
+
+/* =====================================================================
+   Motion: smooth, springy and a little bubbly.
+   One spring curve everywhere, short durations, and nothing moves for
+   people who ask their system for reduced motion (bottom of this block).
+   ===================================================================== */
+:root {
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);   /* overshoots a little, then settles */
+  --spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1);
+  --glide: cubic-bezier(0.22, 1, 0.36, 1);       /* fast start, gentle stop */
+}
+
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { 0% { opacity: 0; transform: scale(0.6); } 70% { opacity: 1; transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes bubble-in-right { from { opacity: 0; transform: translate(14px, 8px) scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes slide-in-right { 0% { opacity: 0; transform: translateX(48px) scale(0.95); } 60% { opacity: 1; transform: translateX(-6px) scale(1.01); } 100% { transform: none; } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes spin-in { from { opacity: 0; transform: rotate(-120deg) scale(0.5); } to { opacity: 1; transform: none; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(91, 84, 234, 0.45); } 100% { box-shadow: 0 0 0 16px rgba(91, 84, 234, 0); } }
+@keyframes typing { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+
+/* Pages and cards float in, one after another */
+.page-enter > .stack-lg > *,
+.page-enter > .stack-lg > .hero > * > *,
+.page-enter > .stack-lg > .claim-layout > * { animation: rise-in 0.55s var(--spring-soft) backwards; }
+.page-enter > .stack-lg > :nth-child(2) { animation-delay: 0.06s; }
+.page-enter > .stack-lg > :nth-child(3) { animation-delay: 0.12s; }
+.page-enter > .stack-lg > :nth-child(4) { animation-delay: 0.18s; }
+.page-enter .hero-side > :nth-child(2) { animation-delay: 0.1s; }
+.welcome-card, .setup-card { animation: rise-in 0.6s var(--spring-soft) backwards; }
+.setup-card { animation-delay: 0.08s; }
+.claim-grid > *, .hospital-grid > *, .option-grid > *, .usage-list > li, .doc-list > * { animation: rise-in 0.5s var(--spring-soft) backwards; }
+.claim-grid > :nth-child(2), .hospital-grid > :nth-child(2), .option-grid > :nth-child(2) { animation-delay: 0.05s; }
+.claim-grid > :nth-child(3), .hospital-grid > :nth-child(3), .option-grid > :nth-child(3) { animation-delay: 0.1s; }
+.claim-grid > :nth-child(n + 4), .hospital-grid > :nth-child(n + 4), .option-grid > :nth-child(n + 4) { animation-delay: 0.15s; }
+.patient-list > li { animation: rise-in 0.5s var(--spring-soft) backwards; animation-delay: calc(var(--i, 0) * 45ms); }
+
+/* Things you press feel springy */
+.btn, .chip-button, .filter-chip, .patient-option, .option, .claim-card, .doc-option, .theme-toggle, .avatar, .chat-close, .file-drop, .link-button {
+  transition: transform 0.35s var(--spring), box-shadow 0.25s var(--glide), background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+.btn:hover:not(:disabled), .chip-button:hover:not(:disabled), .theme-toggle:hover, .avatar:hover { transform: translateY(-2px); }
+.btn:active:not(:disabled), .chip-button:active, .filter-chip:active, .theme-toggle:active, .avatar:active, .chat-close:active { transform: scale(0.94); }
+.btn-primary:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(79, 70, 229, 0.3); }
+.patient-option:hover, .option:hover, .claim-card:hover, .doc-option:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(27, 29, 42, 0.08); }
+.patient-option:active, .option:active, .claim-card:active, .doc-option:active { transform: scale(0.98); }
+.option.is-selected, .claim-card.is-selected { animation: pop-in 0.45s var(--spring); }
+.filter-chip[aria-pressed='true'] { animation: pop-in 0.4s var(--spring); }
+.file-drop:hover { transform: translateY(-2px); }
+.file-drop.is-dragging { transform: scale(1.02); }
+.file-drop.has-file .file-drop-icon { animation: pop-in 0.45s var(--spring); }
+input, select, textarea { transition: border-color 0.2s, box-shadow 0.25s var(--glide); }
+
+/* Welcome tabs: a pill that slides between the two tabs */
+.welcome-tabs { position: relative; }
+.welcome-tabs::before {
+  content: ''; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 6px);
+  border-radius: 999px; background: var(--accent-btn); transition: transform 0.5s var(--spring);
+}
+.welcome-tabs[data-active='new']::before { transform: translateX(calc(100% + 4px)); }
+.welcome-tabs button { position: relative; z-index: 1; transition: color 0.25s; }
+.welcome-tabs button[aria-selected='true'] { background: none; color: #fff; }
+.welcome-grid.show-pick .welcome-card, .welcome-grid.show-new .setup-card { animation: rise-in 0.5s var(--spring-soft) backwards; }
+
+/* Toasts bounce in from the side */
+.toast { animation: slide-in-right 0.55s var(--spring) backwards; }
+.toast-icon { animation: pop-in 0.5s var(--spring) 0.12s backwards; }
+
+/* Claim tracker: steps fill in one by one */
+.tracker-step { animation: rise-in 0.5s var(--spring-soft) backwards; }
+.tracker-step:nth-child(2) { animation-delay: 0.08s; }
+.tracker-step:nth-child(3) { animation-delay: 0.16s; }
+.tracker-step:nth-child(4) { animation-delay: 0.24s; }
+.tracker-step:nth-child(5) { animation-delay: 0.32s; }
+.tracker-step.is-done .tracker-dot, .tracker-step.is-failed .tracker-dot { animation: pop-in 0.5s var(--spring) backwards; animation-delay: inherit; }
+.tracker-bar { transform-origin: left; }
+.tracker-step.is-done .tracker-bar, .tracker-step.is-current .tracker-bar, .tracker-step.is-failed .tracker-bar { animation: grow-x 0.6s var(--glide) backwards; animation-delay: inherit; }
+.meter-fill { transform-origin: left; animation: grow-x 0.9s var(--glide) 0.15s backwards; }
+.callout, .field-warning, .field-error, .banner { animation: rise-in 0.4s var(--spring-soft) backwards; }
+
+/* Chat: bubbles pop, answers float up, typing dots bounce */
+.chat-question { animation: bubble-in-right 0.45s var(--spring) backwards; transform-origin: bottom right; }
+.answer-card { animation: rise-in 0.5s var(--spring-soft) backwards; }
+.chip-button { animation: pop-in 0.4s var(--spring) backwards; }
+.suggestions > :nth-child(2) { animation-delay: 0.05s; }
+.suggestions > :nth-child(3) { animation-delay: 0.1s; }
+.suggestions > :nth-child(n + 4) { animation-delay: 0.15s; }
+.chat-typing { animation: none; }
+.chat-typing::after { content: ' ●●●'; letter-spacing: 2px; display: inline-block; animation: typing 1.1s ease-in-out infinite; }
+.verdict { animation: pop-in 0.5s var(--spring) backwards; }
+.chat-sheet { transition: transform 0.5s var(--spring-soft); }
+.chat-fab { animation: pop-in 0.6s var(--spring) 0.3s backwards, float 3.2s ease-in-out 1s infinite; transition: transform 0.35s var(--spring), opacity 0.25s; }
+.chat-fab:hover { animation-play-state: paused; transform: scale(1.06); }
+.chat-fab:active { transform: scale(0.94); }
+.chat-fab-dot { animation: pop-in 0.4s var(--spring), ring 1.6s ease-out 0.4s infinite; }
+.chat-fab.is-hidden { animation: none; }
+
+/* Header bits */
+.theme-toggle svg { animation: spin-in 0.5s var(--spring); }
+.account-menu { animation: pop-in 0.35s var(--spring) backwards; transform-origin: top right; }
+.main-nav a { transition: color 0.2s, border-color 0.3s var(--glide); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
+}
