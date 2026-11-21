@@ -7,6 +7,7 @@ import Login from './pages/auth/Login.jsx';
 import Register from './pages/auth/Register.jsx';
 import ForgotPassword from './pages/auth/ForgotPassword.jsx';
 import ResetPassword from './pages/auth/ResetPassword.jsx';
+import Privacy from './pages/Privacy.jsx';
 import MyClaims from './pages/MyClaims.jsx';
 import NewClaim from './pages/NewClaim.jsx';
 import Coverage from './pages/Coverage.jsx';
@@ -32,6 +33,7 @@ export default function App() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/welcome" element={<Navigate to="/login" replace />} />
 

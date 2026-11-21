@@ -32,6 +32,7 @@ export default function AuthLayout({ title, lead, children, footer }) {
           {lead && <p className="lead">{lead}</p>}
           {children}
           {footer && <div className="auth-footer">{footer}</div>}
+          <p className="small muted privacy-link"><Link to="/privacy">Privacy policy</Link></p>
         </section>
       </div>
     </main>
