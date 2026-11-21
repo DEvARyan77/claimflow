@@ -52,7 +52,8 @@ export default function GoogleButton({ onSignedIn, onError }) {
           },
         });
         const width = Math.min(box.current.offsetWidth || 320, 400);
-        window.google.accounts.id.renderButton(box.current, { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width });
+        const dark = document.documentElement.dataset.theme === 'dark';
+        window.google.accounts.id.renderButton(box.current, { theme: dark ? 'filled_black' : 'outline', size: 'large', text: 'continue_with', shape: 'pill', width });
       })
       .catch((e) => onError?.(e.message));
     return () => {

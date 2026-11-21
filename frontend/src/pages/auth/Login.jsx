@@ -11,7 +11,7 @@ import GoogleButton from '../../components/GoogleButton.jsx';
 /** Demo accounts (seeded by auth-service and by the browser demo). Password for all: password123 */
 const DEMO_ACCOUNTS = [
   { role: 'Policyholder', email: 'rahul@claimflow.dev', who: 'Rahul Sharma' },
-  { role: 'New policy', email: 'priya@claimflow.dev', who: 'Priya Nair' },
+  { role: 'Policy from document', email: 'priya@claimflow.dev', who: 'Priya Nair' },
   { role: 'Hospital', email: 'apollo@claimflow.dev', who: 'Apollo Hospital' },
   { role: 'Claims officer', email: 'officer@claimflow.dev', who: 'Neha Kapoor' },
   { role: 'Admin', email: 'admin@claimflow.dev', who: 'Admin' },
@@ -83,7 +83,7 @@ export default function Login() {
           {DEMO_ACCOUNTS.map((a, i) => (
             <button key={a.email} type="button" className="demo-account" style={{ '--i': i }}
               disabled={busy !== null} onClick={() => go(a.email, DEMO_PASSWORD, a.email)}>
-              <span className="demo-account-badge" aria-hidden="true">{a.role.split(' ').map((w) => w[0]).join('')}</span>
+              <span className="demo-account-badge" aria-hidden="true">{a.role.split(' ').map((w) => w[0].toUpperCase()).join('').slice(0, 2)}</span>
               <span>
                 <strong>{busy === a.email ? 'Signing in…' : a.role}</strong>
                 <span className="small muted">{a.who}</span>

@@ -1226,7 +1226,7 @@ input, select, textarea { transition: border-color 0.2s, box-shadow 0.25s var(--
 .social-signin { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
 .or-line { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
 .or-line::before, .or-line::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.google-box { display: flex; justify-content: center; min-height: 44px; }
+.google-box { display: flex; justify-content: center; min-height: 44px; color-scheme: light; } /* keeps Google's frame transparent in dark mode */
 .google-box.is-busy { opacity: 0.6; pointer-events: none; }
 .segmented-modes { grid-template-columns: repeat(3, 1fr); }
 .segmented-modes button { font-size: 14px; padding: 0 6px; line-height: 1.2; }
