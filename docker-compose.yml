@@ -18,7 +18,11 @@ x-backend-env: &backend-env
   LLM_CHAT_MODEL: ${LLM_CHAT_MODEL:-}
   LLM_EMBEDDING_MODEL: ${LLM_EMBEDDING_MODEL:-}
   LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-}
-  # Real email (see .env.example). Empty MAIL_USERNAME = email off, messages only in the app.
+  # Login tokens are signed with this. Set your own long random value in .env for anything public.
+  JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-0123456789abcdef}
+  # Real email (see .env.example). Brevo API key (preferred) or SMTP; both empty = email off.
+  BREVO_API_KEY: ${BREVO_API_KEY:-}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ClaimFlow}
   MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
   MAIL_PORT: ${MAIL_PORT:-587}
   MAIL_USERNAME: ${MAIL_USERNAME:-}
@@ -83,6 +87,10 @@ services:
       - "9080:8080"   # your machine:container (8080 was busy on this PC)
 
   # ---------- Business services ----------
+  auth-service:
+    <<: *backend-service
+    build: { context: ., args: { MODULE: auth-service } }
+
   patient-service:
     <<: *backend-service
     build: { context: ., args: { MODULE: patient-service } }

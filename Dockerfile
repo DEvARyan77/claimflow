@@ -12,6 +12,7 @@ COPY common/claimflow-events/pom.xml common/claimflow-events/pom.xml
 COPY services/eureka-server/pom.xml services/eureka-server/pom.xml
 COPY services/config-server/pom.xml services/config-server/pom.xml
 COPY services/api-gateway/pom.xml services/api-gateway/pom.xml
+COPY services/auth-service/pom.xml services/auth-service/pom.xml
 COPY services/patient-service/pom.xml services/patient-service/pom.xml
 COPY services/provider-service/pom.xml services/provider-service/pom.xml
 COPY services/claims-service/pom.xml services/claims-service/pom.xml

@@ -1204,3 +1204,6 @@ input, select, textarea { transition: border-color 0.2s, box-shadow 0.25s var(--
   .demo-account-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .demo-account { padding: 10px; gap: 8px; }
 }
+@media (max-width: 640px) {
+  .policy-card-right { flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
+}

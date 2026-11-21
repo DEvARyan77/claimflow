@@ -7,6 +7,7 @@ export const REPO_URL = import.meta.env.VITE_REPO_URL || '';
 export function resetDemoData() {
   try {
     localStorage.removeItem('claimflow-demo-v1');
+    localStorage.removeItem('claimflow-demo-v2');
     localStorage.removeItem('claimflow.auth');
   } catch {
     // storage blocked: nothing was saved anyway
