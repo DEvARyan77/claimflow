@@ -16,10 +16,10 @@ export default function AuthLayout({ title, lead, children, footer }) {
           </Link>
           <h2>Health claims, decided in seconds.</h2>
           <ul className="auth-points">
-            <li><span>⚡</span> Clean claims approved automatically</li>
-            <li><span>🏥</span> Cashless claims straight from the hospital</li>
-            <li><span>🛡️</span> Unusual claims checked by an officer with AI help</li>
-            <li><span>📩</span> Every update by email, with a copy to your alternate email</li>
+            <li><span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg></span> Clean claims approved automatically</li>
+            <li><span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg></span> Cashless claims straight from the hospital</li>
+            <li><span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg></span> Unusual claims checked by an officer with AI help</li>
+            <li><span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg></span> Every update by email, with a copy to your alternate email</li>
           </ul>
           <div className="auth-bubbles"><i /><i /><i /></div>
         </section>

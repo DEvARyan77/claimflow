@@ -46,6 +46,8 @@ function AccountCard({ user, onSaved }) {
   const [alt, setAlt] = useState(user.alternateEmail ?? '');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  // A policyholder's name is the one on the policy (KYC), so it isn't editable here
+  const nameLocked = user.role === 'POLICYHOLDER';
   const changed = name.trim() !== user.name || alt.trim() !== (user.alternateEmail ?? '');
 
   const save = async (e) => {
@@ -58,8 +60,8 @@ function AccountCard({ user, onSaved }) {
     if (Object.keys(next).length) return;
     setSaving(true);
     try {
-      onSaved(await api.updateMe({ name: name.trim(), alternateEmail: alt.trim() }));
-      toast({ type: 'success', title: 'Saved ✅', message: alt.trim() ? `Copies of every email now also go to ${alt.trim()}.` : undefined });
+      onSaved(await api.updateMe(nameLocked ? { alternateEmail: alt.trim() } : { name: name.trim(), alternateEmail: alt.trim() }));
+      toast({ type: 'success', title: 'Saved', message: alt.trim() ? `Copies of every email now also go to ${alt.trim()}.` : undefined });
     } catch {
       // pop-up shown
     } finally {
@@ -72,8 +74,10 @@ function AccountCard({ user, onSaved }) {
       <h2 className="card-title">Account</h2>
       <div className="field">
         <label htmlFor="pf-name">Name</label>
-        <input id="pf-name" className="text-input" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={Boolean(errors.name)} />
+        <input id="pf-name" className="text-input" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={Boolean(errors.name)}
+          readOnly={nameLocked} aria-describedby={nameLocked ? 'pf-name-hint' : undefined} />
         {errors.name && <p className="field-error">{errors.name}</p>}
+        {nameLocked && <p className="field-hint" id="pf-name-hint">As written on your policy. Contact your insurer to correct it.</p>}
       </div>
       <div className="field">
         <label htmlFor="pf-email">Email</label>
@@ -114,7 +118,7 @@ function PersonalCard({ patient, onSaved }) {
         phone: form.phone.trim(), address: form.address.trim(), dateOfBirth: form.dateOfBirth || null, gender: form.gender,
       });
       onSaved();
-      toast({ type: 'success', title: 'Personal details saved ✅' });
+      toast({ type: 'success', title: 'Personal details saved' });
     } catch {
       // pop-up shown
     } finally {
@@ -136,13 +140,14 @@ function PersonalCard({ patient, onSaved }) {
       </div>
       <fieldset className="field">
         <legend>Gender</legend>
-        <div className="segmented segmented-3" role="radiogroup" aria-label="Gender">
+        <div className="segmented segmented-3" role="radiogroup" aria-label="Gender" aria-describedby={patient.gender ? 'pf-gender-hint' : undefined}>
           {['female', 'male', 'other'].map((g) => (
-            <button key={g} type="button" role="radio" aria-checked={form.gender === g} onClick={() => set('gender')(g)}>
+            <button key={g} type="button" role="radio" aria-checked={form.gender === g} disabled={Boolean(patient.gender)} onClick={() => set('gender')(g)}>
               {g[0].toUpperCase() + g.slice(1)}
             </button>
           ))}
         </div>
+        {patient.gender && <p className="field-hint" id="pf-gender-hint">Recorded on your policy. Contact your insurer to correct it.</p>}
       </fieldset>
       <div className="field">
         <label htmlFor="pf-address">Address</label>
@@ -170,7 +175,7 @@ function PasswordCard() {
     setSaving(true);
     try {
       await api.changePassword(current, next);
-      toast({ type: 'success', title: 'Password changed 🔐', message: 'We’ve emailed you to confirm.' });
+      toast({ type: 'success', title: 'Password changed', message: 'We’ve emailed you to confirm.' });
       setCurrent('');
       setNext('');
     } catch (err) {

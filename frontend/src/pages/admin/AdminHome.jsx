@@ -37,18 +37,18 @@ export default function AdminHome() {
           <p className="lead">How claims are moving through ClaimFlow.</p>
         </div>
         <div className="row-gap">
-          <Link to="/people" className="btn btn-secondary btn-pill">👥 Add staff</Link>
-          <Link to="/hospitals" className="btn btn-secondary btn-pill">🏥 Add hospital</Link>
+          <Link to="/people" className="btn btn-secondary btn-pill">Add staff</Link>
+          <Link to="/hospitals" className="btn btn-secondary btn-pill">Add hospital</Link>
         </div>
       </div>
       {error && <div className="banner banner-error" role="alert"><p>{error}</p></div>}
 
       <StatTiles tiles={[
-        { emoji: '📋', label: 'Claims', value: stats?.total ?? '…' },
-        { emoji: '💰', label: 'Paid to hospitals', value: formatINR(paid.amount), sub: `${paid.count} claims`, tone: 'good' },
-        { emoji: '⚡', label: 'Decided automatically', value: `${autoRate}%`, sub: 'low-risk claims' },
-        { emoji: '🕵️', label: 'Waiting for review', value: queue?.length ?? '…', tone: queue?.length ? 'warn' : undefined },
-        { emoji: '👥', label: 'Accounts', value: users.length || '…' },
+        { label: 'Claims', value: stats?.total ?? '…' },
+        { label: 'Paid to hospitals', value: formatINR(paid.amount), sub: `${paid.count} claims`, tone: 'good' },
+        { label: 'Decided automatically', value: `${autoRate}%`, sub: 'low-risk claims' },
+        { label: 'Waiting for review', value: queue?.length ?? '…', tone: queue?.length ? 'warn' : undefined },
+        { label: 'Accounts', value: users.length || '…' },
       ]} />
 
       <div className="two-col">
@@ -81,7 +81,7 @@ export default function AdminHome() {
 
       <section className="stack-md">
         <h2 className="section-title">Review queue</h2>
-        <ClaimTable claims={queue} providers={providers} showRisk showFilters={false} empty="Nothing waiting for review. 🎉" />
+        <ClaimTable claims={queue} providers={providers} showRisk showFilters={false} empty="Nothing waiting for review." />
       </section>
     </div>
   );

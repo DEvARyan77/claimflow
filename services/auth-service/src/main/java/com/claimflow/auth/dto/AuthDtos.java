@@ -26,7 +26,11 @@ public final class AuthDtos {
             @Email(message = "Enter a valid alternate email") @Size(max = 120) String alternateEmail,
             @NotBlank @Size(min = 8, max = 100, message = PASSWORD_RULE) String password,
             @Size(max = 20) String phone,
-            @Size(max = 20) String policyNumber) {
+            @Size(max = 20) String policyNumber,
+            // Set when the details were read from an uploaded policy document: the policy is created
+            // with this number and cover if it isn't on file yet
+            Boolean fromPolicyDocument,
+            @jakarta.validation.constraints.Positive @jakarta.validation.constraints.Max(value = 100_000_000, message = "That cover looks too large") java.math.BigDecimal coverageLimit) {
     }
 
     public record LoginRequest(@NotBlank @Email String email, @NotBlank String password) {

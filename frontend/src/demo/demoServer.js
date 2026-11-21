@@ -372,8 +372,14 @@ const routes = [
     if (!body?.name?.trim() || !isEmail(email) || String(body?.password ?? '').length < 8) throw new DemoError(400, 'Please fill in every field');
     if (byEmail(email)) throw new DemoError(409, 'An account with this email already exists. Sign in instead.');
     let patient;
-    if (body.policyNumber) {
-      patient = db.patients.find((p) => p.policyNumber.toUpperCase() === body.policyNumber.toUpperCase());
+    const number = String(body.policyNumber ?? '').trim().toUpperCase();
+    if (number && body.fromPolicyDocument && !db.patients.some((p) => p.policyNumber.toUpperCase() === number)) {
+      // From an uploaded policy that isn't on file yet: create it as written on the document
+      if (!(Number(body.coverageLimit) > 0)) throw new DemoError(400, 'Enter the sum insured from your policy.');
+      patient = { id: nextId(db.patients), name: body.name.trim(), email, phone: body.phone ?? null, policyNumber: number, coverageLimit: Number(body.coverageLimit), usedAmount: 0, policyActive: true, policyStartDate: dateAgo(0), createdAt: iso() };
+      db.patients.push(patient);
+    } else if (number) {
+      patient = db.patients.find((p) => p.policyNumber.toUpperCase() === number);
       if (!patient) throw new DemoError(404, `No policy ${body.policyNumber} found`);
       if (patient.email.toLowerCase() !== email) throw new DemoError(400, 'Use the email that’s on your policy to link it.');
       if (db.users.some((u) => u.patientId === patient.id)) throw new DemoError(409, 'This policy already has an account. Sign in instead.');
@@ -385,6 +391,26 @@ const routes = [
     db.users.push(u);
     return login(u);
   }],
+  ['GET', /^\/auth\/social-config$/, async () => {
+    await Promise.race([wakeApi(), wait(4000)]);
+    return { google: apiHealth()?.googleClientId ?? null };
+  }],
+  ['POST', /^\/auth\/google$/, async (_, body) => {
+    // The ClaimFlow API checks the Google token; the account itself lives in this browser
+    const result = await callApi('/google', { credential: body?.credential ?? '' }, { awakeTimeout: 15_000, coldTimeout: 60_000 });
+    if (!result.ok) throw new DemoError(result.status ?? 503, result.message ?? 'Google sign-in is waking up. Try again in a minute.');
+    const { email, name } = result.data;
+    let u = byEmail(email);
+    if (!u) {
+      const patient = { id: nextId(db.patients), name, email, phone: null, policyNumber: `POL${100000 + Math.floor(Math.random() * 900000)}`, coverageLimit: 500000, usedAmount: 0, policyActive: true, policyStartDate: dateAgo(0), createdAt: iso() };
+      db.patients.push(patient);
+      u = { id: nextId(db.users), email, name, role: 'POLICYHOLDER', alternateEmail: null, active: true, password: `google-${Math.random()}`, patientId: patient.id, providerId: null, createdAt: iso(), lastLoginAt: null };
+      db.users.push(u);
+    } else if (!u.active) {
+      throw new DemoError(403, 'This account has been switched off. Contact your administrator.');
+    }
+    return login(u);
+  }],
   ['POST', /^\/auth\/forgot-password$/, () => ({ message: 'If an account uses this email, a reset link is on its way.' })],
   ['POST', /^\/auth\/reset-password$/, () => {
     throw new DemoError(400, 'Reset emails aren’t sent on the demo site. Use a demo account (password: password123).');
@@ -392,7 +418,10 @@ const routes = [
   ['GET', /^\/auth\/me$/, (_, __, ___, me) => (need(me), userView(me))],
   ['PATCH', /^\/auth\/me$/, (_, body, __, me) => {
     need(me);
-    if (body?.name?.trim()) me.name = body.name.trim();
+    if (body?.name?.trim() && body.name.trim() !== me.name) {
+      if (me.role === 'POLICYHOLDER') throw new DemoError(400, "Your name comes from your policy and can't be changed here. Contact your insurer.");
+      me.name = body.name.trim();
+    }
     if (body?.alternateEmail !== undefined) {
       const alt = String(body.alternateEmail ?? '').trim().toLowerCase();
       if (alt && !isEmail(alt)) throw new DemoError(400, 'Enter a valid alternate email');
@@ -450,7 +479,9 @@ const routes = [
     need(me, ['POLICYHOLDER']);
     if (me.patientId !== Number(id)) throw new DemoError(403, "You don't have access to this");
     const p = db.patients.find((x) => x.id === Number(id));
-    for (const k of ['phone', 'address', 'dateOfBirth', 'gender']) if (body?.[k] !== undefined) p[k] = body[k] || null;
+    if (body?.gender && p.gender && body.gender !== p.gender) throw new DemoError(400, "Gender is recorded on your policy and can't be changed here");
+    if (!p.gender && body?.gender) p.gender = body.gender;
+    for (const k of ['phone', 'address', 'dateOfBirth']) if (body?.[k] !== undefined) p[k] = body[k] || null;
     save();
     return withRemaining(p);
   }],
@@ -698,7 +729,7 @@ const routes = [
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const PUBLIC = /^\/auth\/(login|register|forgot-password|reset-password)$/;
+const PUBLIC = /^\/(auth\/(login|register|forgot-password|reset-password|google|social-config)|policies\/extract-profile)$/;
 
 /** Same contract as fetch-ing the API Gateway: returns the JSON body or throws DemoError(status, message). */
 export async function demoRequest(path, { method = 'GET', body, token } = {}) {

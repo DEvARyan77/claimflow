@@ -67,7 +67,7 @@ export default function App() {
             <Route path="policies" element={<Policies />} />
           </>
         )}
-        <Route path="hospitals" element={<Hospitals />} />
+        {role !== 'HOSPITAL' && <Route path="hospitals" element={<Hospitals />} />}
         <Route path="assistant" element={<PolicyAssistant />} />
         <Route path="profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />

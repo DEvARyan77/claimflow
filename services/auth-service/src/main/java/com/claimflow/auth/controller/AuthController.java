@@ -33,6 +33,22 @@ public class AuthController {
         return auth.login(request);
     }
 
+    /** "Continue with Google": { credential } is the ID token from Google Identity Services. */
+    @PostMapping("/google")
+    public LoginResponse google(@RequestBody java.util.Map<String, String> body) {
+        String credential = body == null ? null : body.get("credential");
+        if (credential == null || credential.length() < 20) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Missing Google credential");
+        }
+        return auth.googleSignIn(credential);
+    }
+
+    /** Which sign-in buttons to show (public client ids only). */
+    @GetMapping("/social-config")
+    public java.util.Map<String, String> socialConfig() {
+        return auth.socialConfig();
+    }
+
     @PostMapping("/forgot-password")
     public Message forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         auth.forgotPassword(request);

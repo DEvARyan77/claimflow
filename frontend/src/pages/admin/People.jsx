@@ -118,7 +118,7 @@ function CreateStaff({ providers, onCreated }) {
         name: form.name.trim(), email: form.email.trim(), alternateEmail: form.alternateEmail.trim() || null,
         password: form.password, role: form.role, providerId: form.role === 'HOSPITAL' ? form.providerId : null,
       });
-      toast({ type: 'success', title: `Account created for ${u.name} 🎉`, message: 'They’ll get a welcome email. Share the password with them yourself.' });
+      toast({ type: 'success', title: `Account created for ${u.name}`, message: 'They’ll get a welcome email. Share the password with them yourself.' });
       onCreated(u);
       setForm(EMPTY);
     } catch (err) {

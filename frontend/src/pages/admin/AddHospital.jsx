@@ -12,7 +12,7 @@ export default function AddHospital({ onAdded }) {
   const [saving, setSaving] = useState(false);
 
   if (!open) {
-    return <button type="button" className="btn btn-primary btn-pill self-start" onClick={() => setOpen(true)}>🏥 Add a hospital</button>;
+    return <button type="button" className="btn btn-primary btn-pill self-start" onClick={() => setOpen(true)}>Add a hospital</button>;
   }
 
   const set = (k) => (e) => {
@@ -33,7 +33,7 @@ export default function AddHospital({ onAdded }) {
     setSaving(true);
     try {
       const p = await api.createProvider({ name: form.name.trim(), city: form.city.trim(), registrationNumber: form.registrationNumber.trim().toUpperCase(), specializations: specs, inNetwork: form.inNetwork });
-      toast({ type: 'success', title: `${p.name} added 🏥`, message: 'Create a hospital account for it on the People page.' });
+      toast({ type: 'success', title: `${p.name} added`, message: 'Create a hospital account for it on the People page.' });
       onAdded(p);
       setForm(EMPTY);
       setOpen(false);

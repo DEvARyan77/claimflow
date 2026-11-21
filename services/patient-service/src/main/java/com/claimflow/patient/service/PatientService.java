@@ -1,5 +1,7 @@
 package com.claimflow.patient.service;
 
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import com.claimflow.patient.dto.CreatePatientRequest;
 import com.claimflow.patient.dto.EnrolRequest;
 import com.claimflow.patient.dto.ProfileRequest;
@@ -61,6 +63,12 @@ public class PatientService {
      * (₹5,00,000 cover, starting today) with a fresh policy number.
      */
     public Patient enrol(EnrolRequest request) {
+        if (request.policyNumber() != null && !request.policyNumber().isBlank()) {
+            // createPatient answers 409 if this number (or email) is already used
+            return createPatient(new CreatePatientRequest(request.name(), request.email(), request.phone(),
+                    request.policyNumber().trim().toUpperCase(),
+                    request.coverageLimit() != null ? request.coverageLimit() : new BigDecimal("500000"), true, LocalDate.now()));
+        }
         for (int attempt = 0; attempt < 5; attempt++) {
             String number = "POL" + ThreadLocalRandom.current().nextInt(200000, 999999);
             if (patientRepository.existsByEmailOrPolicyNumber("", number)) continue;
@@ -72,11 +80,19 @@ public class PatientService {
 
     public Patient updateProfile(String id, ProfileRequest request) {
         Patient patient = getPatient(id);
-        if (request.name() != null && !request.name().isBlank()) patient.setName(request.name().trim());
+        // Name and gender are policy (KYC) details: the name never changes here, and gender can only be
+        // filled in once if the policy didn't have it. Contact details can always be updated.
+        if (request.name() != null && !request.name().isBlank() && !request.name().trim().equals(patient.getName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Your name comes from your policy and can't be changed here");
+        }
+        String gender = blankToNull(request.gender());
+        if (gender != null && patient.getGender() != null && !gender.equals(patient.getGender())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gender is recorded on your policy and can't be changed here");
+        }
+        if (patient.getGender() == null) patient.setGender(gender);
         patient.setPhone(blankToNull(request.phone()));
         patient.setAddress(blankToNull(request.address()));
         patient.setDateOfBirth(request.dateOfBirth());
-        patient.setGender(blankToNull(request.gender()));
         return patientRepository.save(patient);
     }
 

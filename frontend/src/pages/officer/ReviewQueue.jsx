@@ -37,21 +37,21 @@ export default function ReviewQueue() {
   return (
     <div className="stack-lg">
       <div>
-        <h1>Good to see you, {firstName(user.name)} 👋</h1>
+        <h1>Good to see you, {firstName(user.name)}</h1>
         <p className="lead">
           {queue === null ? 'Loading the review queue…'
-            : queue.length === 0 ? 'The queue is empty. Every claim has been decided. 🎉'
+            : queue.length === 0 ? 'The queue is empty. Every claim has been decided.'
               : `${queue.length} claim${queue.length === 1 ? '' : 's'} need${queue.length === 1 ? 's' : ''} your decision. The riskiest are at the top.`}
         </p>
       </div>
       {error && <div className="banner banner-error" role="alert"><p>{error}</p></div>}
 
       <StatTiles tiles={[
-        { emoji: '🕵️', label: 'In the queue', value: queue?.length ?? '…' },
-        { emoji: '🚩', label: 'High risk', value: high, tone: high ? 'bad' : undefined },
-        { emoji: '⏳', label: 'Waiting for a reply', value: waitingOnOthers, tone: waitingOnOthers ? 'warn' : undefined },
-        { emoji: '💰', label: 'Amount under review', value: formatINR(atStake) },
-        ...(stats ? [{ emoji: '📊', label: 'Claims in total', value: stats.total }] : []),
+        { label: 'In the queue', value: queue?.length ?? '…' },
+        { label: 'High risk', value: high, tone: high ? 'bad' : undefined },
+        { label: 'Waiting for a reply', value: waitingOnOthers, tone: waitingOnOthers ? 'warn' : undefined },
+        { label: 'Amount under review', value: formatINR(atStake) },
+        ...(stats ? [{ label: 'Claims in total', value: stats.total }] : []),
       ]} />
 
       <ClaimTable claims={queue} providers={providers} showRisk showFilters={(queue?.length ?? 0) > 3}

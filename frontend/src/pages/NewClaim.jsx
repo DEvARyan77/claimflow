@@ -111,7 +111,7 @@ export default function NewClaim() {
       } else if (claim.status === 'REJECTED') {
         toast({ type: 'error', title: `Claim ${claimLabel(claim)} not approved`, message: claim.reason });
       } else if (claim.status === 'UNDER_REVIEW') {
-        toast({ type: 'info', title: `Claim ${claimLabel(claim)} received 🕵️`, message: 'Our claims team will take a quick look. We’ll email you when it’s decided.' });
+        toast({ type: 'info', title: `Claim ${claimLabel(claim)} received`, message: 'Our claims team will take a quick look. We’ll email you when it’s decided.' });
       } else {
         toast({ type: 'info', title: `Claim ${claimLabel(claim)} submitted`, message: 'We’re still verifying it. You’ll get an update shortly.' });
       }

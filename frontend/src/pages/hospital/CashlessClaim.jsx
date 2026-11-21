@@ -71,9 +71,9 @@ export default function CashlessClaim() {
         description: form.description.trim() || null,
       });
       const messages = {
-        APPROVED: ['success', `Claim ${claimLabel(claim)} approved ✅`, `${formatINR(claim.amount)} will be paid to you in a few seconds.`],
+        APPROVED: ['success', `Claim ${claimLabel(claim)} approved`, `${formatINR(claim.amount)} will be paid to you in a few seconds.`],
         REJECTED: ['error', `Claim ${claimLabel(claim)} not approved`, claim.reason],
-        UNDER_REVIEW: ['info', `Claim ${claimLabel(claim)} sent for review 🕵️`, 'A claims officer will check it. You’ll see the decision here.'],
+        UNDER_REVIEW: ['info', `Claim ${claimLabel(claim)} sent for review`, 'A claims officer will check it. You’ll see the decision here.'],
       };
       const [type, title, message] = messages[claim.status] ?? ['info', `Claim ${claimLabel(claim)} submitted`, 'Verification is in progress.'];
       toast({ type, title, message });

@@ -27,6 +27,7 @@ const BREVO_BASE_URL = (env.BREVO_BASE_URL || 'https://api.brevo.com').replace(/
 const MAIL_FROM = (env.MAIL_FROM || '').trim();
 const MAIL_FROM_NAME = env.MAIL_FROM_NAME || 'ClaimFlow';
 const SITE_URL = siteUrl(env.ALLOWED_ORIGIN || '');
+const GOOGLE_CLIENT_ID = cleanKey(env.GOOGLE_CLIENT_ID); // "Continue with Google"; empty = button hidden
 const AI_PER_HOUR = Number(env.AI_REQUESTS_PER_HOUR || 30); // per visitor
 const AI_PER_DAY = Number(env.AI_REQUESTS_PER_DAY || 400); // for everyone together
 const EMAILS_PER_HOUR = Number(env.EMAILS_PER_HOUR || 10); // per visitor
@@ -217,7 +218,23 @@ async function sendEmail(to, name, content) {
 
 // ---------- Routes ----------
 const routes = {
-  'GET /health': async () => ({ ok: true, ai: aiEnabled, email: emailEnabled, model: aiEnabled ? GEMINI_MODEL : null }),
+  'GET /health': async () => ({ ok: true, ai: aiEnabled, email: emailEnabled, model: aiEnabled ? GEMINI_MODEL : null, googleClientId: GOOGLE_CLIENT_ID || null }),
+
+  // Checks a Google ID token (Google verifies the signature) and returns the verified email and name.
+  // The demo site then signs that person in, in the browser.
+  'POST /google': async (body, ip) => {
+    if (!GOOGLE_CLIENT_ID) throw new HttpError(503, "Google sign-in isn't set up on this server.");
+    if (!allow(`google:${ip}`, 30, HOUR)) throw new HttpError(429, 'Too many sign-in attempts. Try again later.');
+    const credential = String(body.credential || '');
+    if (credential.length < 20) throw new HttpError(400, 'Missing Google credential.');
+    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`, { signal: AbortSignal.timeout(10_000) });
+    const info = await res.json().catch(() => ({}));
+    const valid = res.ok && info.aud === GOOGLE_CLIENT_ID && ['accounts.google.com', 'https://accounts.google.com'].includes(info.iss)
+      && Number(info.exp) * 1000 > Date.now();
+    if (!valid) throw new HttpError(401, 'Google sign-in failed. Please try again.');
+    if (!info.email || info.email_verified !== 'true') throw new HttpError(400, 'Your Google account has no verified email.');
+    return { email: String(info.email).toLowerCase(), name: info.name || String(info.email).split('@')[0], subject: info.sub };
+  },
 
   'POST /ask': async (body, ip) => {
     requireAi(ip);

@@ -23,7 +23,7 @@ export function buildSteps(claim, providerName, notifications) {
   // Claims the fraud check sent to an officer get an extra "Review" step
   const inReview = status === 'UNDER_REVIEW' || status === 'INFO_REQUESTED';
   const reviewed = (claim.reviewNotes ?? []).some((n) => n.action === 'APPROVE' || n.action === 'REJECT');
-  if (inReview || reviewed) {
+  if ((inReview || reviewed) && status !== 'REJECTED') {
     steps.push({
       key: 'review',
       label: status === 'INFO_REQUESTED' ? 'Info needed' : 'Review',
@@ -34,8 +34,15 @@ export function buildSteps(claim, providerName, notifications) {
 
   if (status === 'REJECTED') {
     const notified = notificationFor('REJECTED');
+    const reviewedOut = (claim.reviewNotes ?? []).some((n) => n.action === 'REJECT');
+    if (reviewedOut) {
+      // Passed the checks, then rejected by the claims team: the Review step fails
+      steps.push({ key: 'review', label: 'Review', state: 'failed', note: `Not approved · ${formatWhen(claim.decidedAt)}` });
+    } else {
+      // Failed a check (policy, hospital or cover): verification itself fails, nothing further happens
+      steps[1] = { key: 'verified', label: 'Not verified', state: 'failed', note: claim.reason ?? 'A check failed' };
+    }
     steps.push(
-      { key: 'decision', label: 'Rejected', state: 'failed', note: formatWhen(claim.decidedAt) },
       {
         key: 'notified',
         label: 'Notified',

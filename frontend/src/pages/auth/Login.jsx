@@ -6,14 +6,15 @@ import { EMAIL_PATTERN, firstName } from '../../format.js';
 import { toast } from '../../toast.jsx';
 import { IS_DEMO, resetDemoData } from '../../demo/isDemo.js';
 import AuthLayout, { Field, PasswordField } from './AuthLayout.jsx';
+import GoogleButton from '../../components/GoogleButton.jsx';
 
 /** Demo accounts (seeded by auth-service and by the browser demo). Password for all: password123 */
 const DEMO_ACCOUNTS = [
-  { role: 'Policyholder', emoji: '🙋', email: 'rahul@claimflow.dev', who: 'Rahul Sharma' },
-  { role: 'New policy', emoji: '🆕', email: 'priya@claimflow.dev', who: 'Priya Nair' },
-  { role: 'Hospital', emoji: '🏥', email: 'apollo@claimflow.dev', who: 'Apollo Hospital' },
-  { role: 'Claims officer', emoji: '🕵️', email: 'officer@claimflow.dev', who: 'Neha Kapoor' },
-  { role: 'Admin', emoji: '🛠️', email: 'admin@claimflow.dev', who: 'Admin' },
+  { role: 'Policyholder', email: 'rahul@claimflow.dev', who: 'Rahul Sharma' },
+  { role: 'New policy', email: 'priya@claimflow.dev', who: 'Priya Nair' },
+  { role: 'Hospital', email: 'apollo@claimflow.dev', who: 'Apollo Hospital' },
+  { role: 'Claims officer', email: 'officer@claimflow.dev', who: 'Neha Kapoor' },
+  { role: 'Admin', email: 'admin@claimflow.dev', who: 'Admin' },
 ];
 const DEMO_PASSWORD = 'password123';
 
@@ -68,13 +69,21 @@ export default function Login() {
         </div>
       </form>
 
+      <GoogleButton
+        onSignedIn={(result) => {
+          toast({ type: 'success', title: `Welcome, ${firstName(result.user.name)}` });
+          navigate(location.state?.from ?? '/', { replace: true });
+        }}
+        onError={(message) => setErrors({ form: message })}
+      />
+
       <div className="demo-accounts">
         <p className="card-title">Try a demo account</p>
         <div className="demo-account-grid">
           {DEMO_ACCOUNTS.map((a, i) => (
             <button key={a.email} type="button" className="demo-account" style={{ '--i': i }}
               disabled={busy !== null} onClick={() => go(a.email, DEMO_PASSWORD, a.email)}>
-              <span className="demo-account-emoji" aria-hidden="true">{a.emoji}</span>
+              <span className="demo-account-badge" aria-hidden="true">{a.role.split(' ').map((w) => w[0]).join('')}</span>
               <span>
                 <strong>{busy === a.email ? 'Signing in…' : a.role}</strong>
                 <span className="small muted">{a.who}</span>

@@ -106,7 +106,7 @@ export default function ClaimDetail() {
           <section className="card">
             <h2 className="card-title">Claim details</h2>
             <dl className="facts">
-              <dt>Type</dt><dd>{claim.type === 'CASHLESS' ? '🏥 Cashless (hospital)' : '🧾 Reimbursement'}</dd>
+              <dt>Type</dt><dd>{claim.type === 'CASHLESS' ? 'Cashless (hospital)' : 'Reimbursement'}</dd>
               <dt>Treatment</dt><dd>{treatmentName(claim)} <code>{claim.diagnosisCode}</code></dd>
               <dt>Bill</dt><dd>{formatINR(claim.amount)}</dd>
               {claim.admissionDate && (<><dt>Stay</dt><dd>{formatDate(claim.admissionDate)}{claim.dischargeDate && ` – ${formatDate(claim.dischargeDate)}`}</dd></>)}
@@ -156,7 +156,7 @@ function FraudPanel({ fraud }) {
   return (
     <section className={`card fraud-panel fraud-${fraud.level.toLowerCase()}`} aria-labelledby="fraud-title">
       <div className="row-between">
-        <h2 className="card-title" id="fraud-title">🛡️ Fraud check</h2>
+        <h2 className="card-title" id="fraud-title">Fraud check</h2>
         <RiskBadge fraud={fraud} />
       </div>
       <div className="risk-meter" role="img" aria-label={`Risk score ${fraud.score} of 100`}>
@@ -181,7 +181,7 @@ function FraudPanel({ fraud }) {
       {fraud.aiStatus && fraud.aiStatus !== 'SKIPPED' && (
         <div className="ai-review">
           <p className="ai-review-title">
-            ✨ {fraud.aiStatus === 'DONE' ? 'AI review (Gemini)' : fraud.aiStatus === 'PENDING' ? 'AI review' : 'Summary'}
+            {fraud.aiStatus === 'DONE' ? 'AI review (Gemini)' : fraud.aiStatus === 'PENDING' ? 'AI review' : 'Summary'}
             {adviceText && <span className={`verdict verdict-${tone}`}>{adviceText}</span>}
           </p>
           {fraud.aiStatus === 'PENDING' ? (
@@ -210,7 +210,7 @@ function ReviewActions({ claim, onDone }) {
     setBusy(true);
     try {
       const updated = await api.reviewClaim(claim.id, chosen, chosen === 'APPROVE' ? note.trim() || null : note.trim());
-      const titles = { APPROVE: '✅ Claim approved', REJECT: '⛔ Claim rejected', REQUEST_INFO: '❓ Information requested', NOTE: '📝 Note saved' };
+      const titles = { APPROVE: 'Claim approved', REJECT: 'Claim rejected', REQUEST_INFO: 'Information requested', NOTE: 'Note saved' };
       toast({
         type: updated.status === 'REJECTED' && chosen === 'APPROVE' ? 'warning' : 'success',
         title: updated.status === 'REJECTED' && chosen === 'APPROVE' ? 'Couldn’t approve' : titles[chosen],
@@ -236,13 +236,13 @@ function ReviewActions({ claim, onDone }) {
     <section className="card review-actions" aria-labelledby="decide-title">
       <h2 className="card-title" id="decide-title">Your decision</h2>
       <div className="decision-buttons">
-        <button type="button" className="btn btn-approve" disabled={busy} onClick={() => run('APPROVE')}>✅ Approve</button>
+        <button type="button" className="btn btn-approve" disabled={busy} onClick={() => run('APPROVE')}>Approve</button>
         <button type="button" className={`btn btn-secondary${action === 'REQUEST_INFO' ? ' is-active' : ''}`} disabled={busy}
-          onClick={() => { setAction('REQUEST_INFO'); setError(null); }}>❓ Ask for info</button>
+          onClick={() => { setAction('REQUEST_INFO'); setError(null); }}>Ask for info</button>
         <button type="button" className={`btn btn-reject${action === 'REJECT' ? ' is-active' : ''}`} disabled={busy}
-          onClick={() => { setAction('REJECT'); setError(null); }}>⛔ Reject</button>
+          onClick={() => { setAction('REJECT'); setError(null); }}>Reject</button>
         <button type="button" className={`btn btn-ghost${action === 'NOTE' ? ' is-active' : ''}`} disabled={busy}
-          onClick={() => { setAction('NOTE'); setError(null); }}>📝 Note</button>
+          onClick={() => { setAction('NOTE'); setError(null); }}>Note</button>
       </div>
       {action && (
         <div className="decision-note">

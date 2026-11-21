@@ -34,7 +34,7 @@ export default function ResetPassword() {
     try {
       const result = await api.resetPassword(email, token, password);
       signIn(result);
-      toast({ type: 'success', title: 'Password changed 🔐', message: 'You’re signed in with your new password.' });
+      toast({ type: 'success', title: 'Password changed', message: 'You’re signed in with your new password.' });
       navigate('/', { replace: true });
     } catch (err) {
       setErrors({ form: err.message });

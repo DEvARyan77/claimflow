@@ -9,4 +9,5 @@ claimflow:
   auth:
     token-hours: 12                           # how long a login lasts
     app-url: ${APP_URL:http://localhost:3000} # used in emailed links (password reset)
+    google-client-id: ${GOOGLE_CLIENT_ID:}       # "Continue with Google"; empty = button hidden
     seed-demo-users: ${SEED_DEMO_USERS:true}  # demo logins for every role, password "password123"

@@ -21,7 +21,8 @@ public final class Clients {
     public record ProviderRef(String id, String name, String registrationNumber) {
     }
 
-    public record EnrolRequest(String name, String email, String phone) {
+    /** policyNumber / coverageLimit: from an uploaded policy document; null = issue a new ₹5,00,000 policy. */
+    public record EnrolRequest(String name, String email, String phone, String policyNumber, java.math.BigDecimal coverageLimit) {
     }
 
     @FeignClient(name = "patient-service")

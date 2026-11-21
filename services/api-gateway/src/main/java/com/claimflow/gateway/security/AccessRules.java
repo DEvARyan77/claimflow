@@ -33,7 +33,11 @@ public final class AccessRules {
             new Rule("POST", "/auth/login", null),
             new Rule("POST", "/auth/register", null),
             new Rule("POST", "/auth/forgot-password", null),
-            new Rule("POST", "/auth/reset-password", null));
+            new Rule("POST", "/auth/reset-password", null),
+            new Rule("POST", "/auth/google", null),
+            new Rule("GET", "/auth/social-config", null),
+            // sign-up can read the details off a policy document before the account exists
+            new Rule("POST", "/policies/extract-profile", null));
 
     private static final List<String> INTERNAL = List.of(
             "/auth/internal/**",

@@ -22,6 +22,8 @@ x-backend-env: &backend-env
   JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-0123456789abcdef}
   # Real email (see .env.example). Brevo API key (preferred) or SMTP; both empty = email off.
   BREVO_API_KEY: ${BREVO_API_KEY:-}
+  # "Continue with Google": OAuth client ID (Web). Empty = no Google button.
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
   MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ClaimFlow}
   MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
   MAIL_PORT: ${MAIL_PORT:-587}

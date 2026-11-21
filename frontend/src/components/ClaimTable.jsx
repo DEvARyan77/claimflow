@@ -58,7 +58,7 @@ export default function ClaimTable({ claims, providers = {}, showRisk = false, s
             <Link key={c.id} to={`/claims/${c.id}`} className="claim-table-row" role="row" style={{ '--i': Math.min(i, 10) }}>
               <span role="cell" className="claim-table-id">
                 <strong>{claimLabel(c)}</strong>
-                <span className="small muted">{c.type === 'CASHLESS' ? '🏥 Cashless' : '🧾 Reimbursement'} · {formatWhen(c.createdAt)}</span>
+                <span className="small muted">{c.type === 'CASHLESS' ? 'Cashless' : 'Reimbursement'} · {formatWhen(c.createdAt)}</span>
               </span>
               <span role="cell">
                 {c.patientName ?? '—'}
@@ -85,7 +85,6 @@ export function StatTiles({ tiles }) {
     <div className="stat-tiles">
       {tiles.map((t, i) => (
         <div key={t.label} className={`card stat-tile${t.tone ? ` stat-${t.tone}` : ''}`} style={{ '--i': i }}>
-          <span className="stat-emoji" aria-hidden="true">{t.emoji}</span>
           <span className="stat-value">{t.value}</span>
           <span className="stat-label">{t.label}</span>
           {t.sub && <span className="small muted">{t.sub}</span>}

@@ -42,6 +42,7 @@ public class AuthService {
     private final PatientClient patientClient;
     private final ProviderClient providerClient;
     private final AccountEventPublisher events;
+    private final GoogleVerifier google;
 
     @Value("${claimflow.auth.token-hours:12}")
     private long tokenHours;
@@ -80,9 +81,19 @@ public class AuthService {
     private PatientRef linkOrEnrolPolicy(RegisterRequest req, String email) {
         try {
             if (req.policyNumber() == null || req.policyNumber().isBlank()) {
-                return patientClient.enrol(new EnrolRequest(req.name().trim(), email, req.phone()));
+                return patientClient.enrol(new EnrolRequest(req.name().trim(), email, req.phone(), null, null));
             }
-            PatientRef patient = patientClient.byPolicy(req.policyNumber().trim());
+            String number = req.policyNumber().trim().toUpperCase();
+            if (Boolean.TRUE.equals(req.fromPolicyDocument())) {
+                // From an uploaded policy: link it if it's already on file, otherwise create it as written
+                try {
+                    patientClient.byPolicy(number);
+                } catch (FeignException.NotFound notOnFile) {
+                    if (req.coverageLimit() == null) throw error(HttpStatus.BAD_REQUEST, "Enter the sum insured from your policy.");
+                    return patientClient.enrol(new EnrolRequest(req.name().trim(), email, req.phone(), number, req.coverageLimit()));
+                }
+            }
+            PatientRef patient = patientClient.byPolicy(number);
             if (patient.email() == null || !patient.email().equalsIgnoreCase(email)) {
                 throw error(HttpStatus.BAD_REQUEST,
                         "Use the email address on policy " + patient.policyNumber() + " to sign up for it.");
@@ -107,6 +118,44 @@ public class AuthService {
         return loginResponse(user);
     }
 
+    /**
+     * "Continue with Google": signs in the account with that (Google-verified) email, or creates a
+     * policyholder with a new policy. No password is set; "Forgot password" can add one later.
+     */
+    public LoginResponse googleSignIn(String credential) {
+        GoogleVerifier.GoogleProfile profile = google.verify(credential);
+        User user = users.findByEmail(profile.email()).orElse(null);
+        if (user == null) {
+            PatientRef patient;
+            try {
+                patient = patientClient.enrol(new EnrolRequest(profile.name(), profile.email(), null, null, null));
+            } catch (FeignException e) {
+                throw error(HttpStatus.SERVICE_UNAVAILABLE, "The policy service is busy. Please try again in a minute.");
+            }
+            user = new User();
+            user.setEmail(profile.email());
+            user.setName(profile.name());
+            user.setRole(Roles.POLICYHOLDER);
+            user.setPatientId(patient.id());
+            user.setPasswordHash(passwordEncoder.encode(java.util.UUID.randomUUID() + "-" + System.nanoTime()));
+            user.setCreatedAt(Instant.now());
+            user = save(user);
+            events.publish("WELCOME", user, appUrl + "/");
+            log.info("New policyholder {} via Google, policy {}", user.getEmail(), patient.policyNumber());
+        } else if (!user.isActive()) {
+            throw error(HttpStatus.FORBIDDEN, "This account has been switched off. Please contact the admin.");
+        }
+        user.setLastLoginAt(Instant.now());
+        users.save(user);
+        return loginResponse(user);
+    }
+
+    public java.util.Map<String, String> socialConfig() {
+        java.util.Map<String, String> config = new java.util.HashMap<>();
+        config.put("google", google.isEnabled() ? google.clientId() : null);
+        return config;
+    }
+
     private LoginResponse loginResponse(User user) {
         String token = jwt.sign(new JwtCodec.UserClaims(user.getId(), user.getRole(), user.getName(), user.getEmail(),
                 user.getPatientId(), user.getProviderId()), Duration.ofHours(tokenHours));
@@ -123,7 +172,13 @@ public class AuthService {
 
     public User updateMe(String userId, UpdateMeRequest req) {
         User user = me(userId);
-        if (req.name() != null && !req.name().isBlank()) user.setName(req.name().trim());
+        if (req.name() != null && !req.name().isBlank() && !req.name().trim().equals(user.getName())) {
+            // A policyholder's name is the one on the policy (KYC); only staff can rename themselves
+            if (Roles.POLICYHOLDER.equals(user.getRole())) {
+                throw error(HttpStatus.BAD_REQUEST, "Your name comes from your policy and can't be changed here. Contact your insurer.");
+            }
+            user.setName(req.name().trim());
+        }
         if (req.alternateEmail() != null) user.setAlternateEmail(alternate(req.alternateEmail(), user.getEmail()));
         return users.save(user);
     }

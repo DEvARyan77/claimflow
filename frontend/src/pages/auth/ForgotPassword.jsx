@@ -32,7 +32,7 @@ export default function ForgotPassword() {
       footer={<Link to="/login">← Back to sign in</Link>}>
       {sent ? (
         <div className="success-panel">
-          <span className="success-icon" aria-hidden="true">📩</span>
+          <span className="success-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg></span>
           <p className="strong">Check your inbox</p>
           <p className="muted">If an account uses <strong>{email.trim()}</strong>, a reset link is on its way. It works once and expires in 30 minutes.</p>
         </div>

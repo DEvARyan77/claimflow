@@ -8,7 +8,7 @@ import AiToggle from './AiToggle.jsx';
 
 const NAV = {
   POLICYHOLDER: [['/', 'My claims'], ['/coverage', 'Coverage'], ['/hospitals', 'Hospitals'], ['/assistant', 'Policy assistant']],
-  HOSPITAL: [['/', 'Claims'], ['/hospitals', 'Network'], ['/assistant', 'Policy assistant']],
+  HOSPITAL: [['/', 'Claims'], ['/assistant', 'Policy assistant']],
   OFFICER: [['/', 'Review queue'], ['/claims', 'All claims'], ['/hospitals', 'Hospitals'], ['/assistant', 'Policy assistant']],
   ADMIN: [['/', 'Dashboard'], ['/claims', 'Claims'], ['/policies', 'Policies'], ['/people', 'People'], ['/hospitals', 'Hospitals']],
 };
@@ -87,10 +87,10 @@ export default function Header({ user, patient }) {
                   <span>{user.email}</span>
                 </div>
                 <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); navigate('/profile'); }}>
-                  👤 Profile & settings
+                  Profile & settings
                 </button>
                 <button type="button" role="menuitem" onClick={logOut}>
-                  🚪 Sign out
+                  Sign out
                 </button>
               </div>
             )}

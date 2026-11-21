@@ -43,7 +43,7 @@ export default function HospitalHome() {
     <div className="stack-lg">
       <div className="page-head">
         <div>
-          <h1>🏥 {hospital?.name ?? user.name}</h1>
+          <h1>{hospital?.name ?? user.name}</h1>
           <p className="lead">Raise cashless claims for insured patients and follow them until you’re paid.</p>
         </div>
         <Link to="/new" className="btn btn-primary btn-pill btn-large"><PlusIcon /> New cashless claim</Link>
@@ -59,10 +59,10 @@ export default function HospitalHome() {
       )}
 
       <StatTiles tiles={[
-        { emoji: '📋', label: 'Claims raised', value: claims?.length ?? '…' },
-        { emoji: '🕵️', label: 'With the insurer', value: count('SUBMITTED', 'UNDER_REVIEW', 'INFO_REQUESTED') },
-        { emoji: '✅', label: 'Approved or paid', value: count('APPROVED', 'PAID'), tone: 'good' },
-        { emoji: '💰', label: 'Received', value: formatINR(received), sub: `${payments.length} payments`, tone: 'good' },
+        { label: 'Claims raised', value: claims?.length ?? '…' },
+        { label: 'With the insurer', value: count('SUBMITTED', 'UNDER_REVIEW', 'INFO_REQUESTED') },
+        { label: 'Approved or paid', value: count('APPROVED', 'PAID'), tone: 'good' },
+        { label: 'Received', value: formatINR(received), sub: `${payments.length} payments`, tone: 'good' },
       ]} />
 
       <section className="stack-md">

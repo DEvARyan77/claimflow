@@ -74,7 +74,7 @@ const sources = [{ number: 1, page: 3, excerpt: '5.1 Cataract surgery: up to Rs.
 
 test('health says what is switched on', async () => {
   const res = await fetch(`${base}/health`);
-  assert.deepEqual(await res.json(), { ok: true, ai: true, email: true, model: 'main-model' });
+  assert.deepEqual(await res.json(), { ok: true, ai: true, email: true, model: 'main-model', googleClientId: null });
 });
 
 test('other websites are refused', async () => {
@@ -141,4 +141,13 @@ test('limits stop one visitor from using up the quota', async () => {
   const emails = [];
   for (let i = 0; i < 4; i += 1) emails.push((await post('/email', { to: 'y@gmail.com', status: 'PAID', claimId: i, amount: 1 }, SITE, '8.8.8.8')).status);
   assert.deepEqual(emails, [200, 200, 200, 429]);
+});
+
+test('google sign-in is refused when no client id is set', async () => {
+  const res = await fetch(`${base}/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://claimflow.example' },
+    body: JSON.stringify({ credential: 'x'.repeat(40) }),
+  });
+  assert.ok([403, 503].includes(res.status));
 });
