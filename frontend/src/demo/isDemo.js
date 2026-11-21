@@ -7,9 +7,9 @@ export const REPO_URL = import.meta.env.VITE_REPO_URL || '';
 export function resetDemoData() {
   try {
     localStorage.removeItem('claimflow-demo-v1');
-    localStorage.removeItem('claimflow.patientId');
+    localStorage.removeItem('claimflow.auth');
   } catch {
     // storage blocked: nothing was saved anyway
   }
-  window.location.href = '/welcome';
+  window.location.href = '/login';
 }

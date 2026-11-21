@@ -191,7 +191,7 @@ export default function PolicyAssistant() {
                 </label>
               ))}
             </div>
-            <UploadPolicy patient={patient} onUploaded={(doc) => loadDocuments(doc.id)} />
+            {patient && <UploadPolicy patient={patient} onUploaded={(doc) => loadDocuments(doc.id)} />}
           </div>
 
           <div className="card status-card">

@@ -106,7 +106,8 @@ public class NotificationListener {
             case "INFO_REQUESTED" -> "We need a little more information for your " + claim + ". "
                     + strip(event.reason(), "More information needed: ") + " Please reply from the claim page.";
             case "APPROVED" -> "Good news! Your " + claim + " of " + amount + " is approved. We're paying the hospital now.";
-            case "REJECTED" -> "Your " + claim + " of " + amount + " was not approved. Reason: " + event.reason() + ".";
+            case "REJECTED" -> "Your " + claim + " of " + amount + " was not approved. Reason: "
+                    + (event.reason() == null ? "" : event.reason().replaceAll("\\.+$", "")) + ".";
             case "PAID" -> amount + " for " + claim + " has been paid to the hospital. Nothing more to do.";
             default -> "Update on your " + claim + ": " + event.status();
         };

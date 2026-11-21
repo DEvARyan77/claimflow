@@ -116,6 +116,10 @@ public class ClaimService {
         try {
             PatientDto patient = verificationClient.findPatient(claim.getPatientId()).orElse(null);
             ProviderDto provider = verificationClient.findProvider(claim.getProviderId()).orElse(null);
+            if (patient != null) {
+                claim.setPatientName(patient.getName());
+                claim.setPolicyNumber(patient.getPolicyNumber());
+            }
 
             Optional<String> rejectionReason = ClaimRules.findRejectionReason(patient, provider, claim.getAmount());
             if (rejectionReason.isPresent()) {

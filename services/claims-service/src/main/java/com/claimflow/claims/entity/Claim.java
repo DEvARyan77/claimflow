@@ -54,6 +54,9 @@ public class Claim {
     /** REIMBURSEMENT = policyholder paid and claims back; CASHLESS = hospital claims directly. */
     private ClaimType type;
 
+    private String patientName;        // copied from the policy when the claim is checked, for lists
+    private String policyNumber;
+
     private String treatment;          // readable name of the diagnosis, e.g. "Heart attack"
     private LocalDate admissionDate;
     private LocalDate dischargeDate;

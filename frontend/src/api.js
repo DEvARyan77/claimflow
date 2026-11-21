@@ -1,5 +1,6 @@
 import { toast } from './toast.jsx';
 import { IS_DEMO } from './demo/isDemo.js';
+import { currentToken, signOutEverywhere } from './session.jsx';
 
 // Every request goes to /api/... which is forwarded to the API Gateway (vite.config.js / nginx.conf).
 const BASE = '/api';
@@ -23,6 +24,8 @@ async function request(path, options = {}) {
   // JSON bodies need a Content-Type; file uploads (FormData) must let the browser set it
   const headers = { Accept: 'application/json' };
   if (typeof fetchOptions.body === 'string') headers['Content-Type'] = 'application/json';
+  const token = currentToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   const fail = (message, status) => {
     if (!quiet) {
@@ -39,8 +42,9 @@ async function request(path, options = {}) {
   if (IS_DEMO) {
     const { demoRequest } = await import('./demo/demoServer.js');
     try {
-      return await demoRequest(path, fetchOptions);
+      return await demoRequest(path, { ...fetchOptions, token });
     } catch (e) {
+      if (e.status === 401 && token) signOutEverywhere();
       throw fail(e.message, e.status ?? 500);
     }
   }
@@ -53,6 +57,11 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
+    // the login expired or the account was switched off: back to the sign-in page
+    if (response.status === 401 && token) {
+      signOutEverywhere();
+      throw fail('Your session has ended. Please sign in again.', 401);
+    }
     if ([502, 503, 504].includes(response.status)) throw fail(OFFLINE_MESSAGE, response.status);
     let message = `Something went wrong (${response.status}).`;
     try {
@@ -69,16 +78,48 @@ async function request(path, options = {}) {
 }
 
 const post = (path, body, opts) => request(path, { method: 'POST', body: JSON.stringify(body), ...opts });
+const patch = (path, body, opts) => request(path, { method: 'PATCH', body: JSON.stringify(body), ...opts });
 
 export const api = {
-  patients: () => request('/patients'),
+  // Accounts (auth-service)
+  login: (email, password) => post('/auth/login', { email, password }, { quiet: true }),
+  register: (form) => post('/auth/register', form, { quiet: true }),
+  forgotPassword: (email) => post('/auth/forgot-password', { email }),
+  resetPassword: (email, token, password) => post('/auth/reset-password', { email, token, password }, { quiet: true }),
+  me: (opts) => request('/auth/me', opts),
+  updateMe: (changes) => patch('/auth/me', changes),
+  changePassword: (currentPassword, newPassword) => post('/auth/me/password', { currentPassword, newPassword }, { quiet: true }),
+  users: (opts) => request('/auth/users', opts),
+  createStaff: (form) => post('/auth/users', form, { quiet: true }),
+  setUserActive: (id, active) => patch(`/auth/users/${id}/active`, { active }),
+
+  // Policies and policyholders
+  patients: (opts) => request('/patients', opts),
   patient: (id, opts) => request(`/patients/${id}`, opts),
+  patientByPolicy: (policyNumber, opts) => request(`/patients/by-policy/${encodeURIComponent(policyNumber)}`, opts),
   createPatient: (patient) => post('/patients', patient),
+  updatePatientProfile: (id, profile) => patch(`/patients/${id}/profile`, profile),
+
+  // Hospitals
   providers: (opts) => request('/providers', opts),
+  createProvider: (provider) => post('/providers', provider),
+
+  // Claims
+  allClaims: (opts) => request('/claims', opts),
+  claim: (id, opts) => request(`/claims/${id}`, opts),
   claimsForPatient: (patientId, opts) => request(`/claims/patient/${patientId}`, opts),
+  claimsForProvider: (providerId, opts) => request(`/claims/provider/${providerId}`, opts),
+  reviewQueue: (opts) => request('/claims/review-queue', opts),
+  claimStats: (opts) => request('/claims/stats', opts),
   submitClaim: (claim) => post('/claims', claim),
+  reviewClaim: (id, action, note) => post(`/claims/${id}/review`, { action, note }),
+  replyToClaim: (id, note) => post(`/claims/${id}/info`, { note }),
+
+  // Payments and messages
   notificationsForPatient: (patientId, opts) => request(`/notifications/patient/${patientId}`, opts),
   paymentsForPatient: (patientId, opts) => request(`/payments/patient/${patientId}`, opts),
+  paymentsForProvider: (providerId, opts) => request(`/payments/provider/${providerId}`, opts),
+  allPayments: (opts) => request('/payments', opts),
 
   // Policy Assistant (RAG)
   assistantStatus: () => request('/policies/assistant/status', { quiet: true }),

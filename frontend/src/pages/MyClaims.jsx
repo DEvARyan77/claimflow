@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useOutletContext } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { api } from '../api.js';
-import { firstName, formatINR, formatWhen, claimLabel, notificationClaimLabel } from '../format.js';
+import { firstName, formatINR, formatWhen, claimLabel, notificationClaimLabel, treatmentName } from '../format.js';
+import ReviewThread, { ReplyBox } from '../components/ReviewThread.jsx';
+import { formatDate } from '../components/DatePicker.jsx';
 import ClaimTracker from '../components/ClaimTracker.jsx';
 import StatusPill from '../components/StatusPill.jsx';
 import { PlusIcon } from '../components/Icons.jsx';
 import { toast } from '../toast.jsx';
 
-const ACTIVE_STATUSES = ['SUBMITTED', 'APPROVED'];
+const ACTIVE_STATUSES = ['SUBMITTED', 'APPROVED', 'UNDER_REVIEW', 'INFO_REQUESTED'];
 
 export default function MyClaims() {
   const { patient, refreshPatient } = useOutletContext();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { claimId } = useParams();   // /claims/:claimId, e.g. from the link in an email
   const [claims, setClaims] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [providers, setProviders] = useState({});
-  const [selectedId, setSelectedId] = useState(location.state?.claimId ?? null);
+  const [selectedId, setSelectedId] = useState(claimId ?? location.state?.claimId ?? null);
   const [error, setError] = useState(null);
 
   // Remember what we've already seen, so a change shows a pop-up exactly once
@@ -27,6 +31,7 @@ export default function MyClaims() {
   // Pick a claim from the list: on phones the list sits above the details, so glide down to them
   const pick = (id) => {
     setSelectedId(id);
+    if (claimId) navigate('/', { replace: true });
     const main = mainRef.current;
     if (main && window.matchMedia('(max-width: 899px)').matches) {
       const top = main.getBoundingClientRect().top + window.scrollY - 12;
@@ -59,7 +64,7 @@ export default function MyClaims() {
 
   const selected = useMemo(() => {
     if (!claims || claims.length === 0) return null;
-    return claims.find((c) => c.id === selectedId) ?? claims[0];
+    return claims.find((c) => String(c.id) === String(selectedId)) ?? claims[0];
   }, [claims, selectedId]);
 
   // Keep the tracker live while a claim is still moving (checking → approved → paid → notified)
@@ -72,7 +77,7 @@ export default function MyClaims() {
     const timer = setInterval(() => {
       load(true);
       refreshPatient(true);
-    }, 2500);
+    }, claims?.some((c) => c.status === 'SUBMITTED' || c.status === 'APPROVED') ? 2500 : 6000);
     return () => clearInterval(timer);
   }, [stillMoving, load, refreshPatient]);
 
@@ -113,14 +118,23 @@ export default function MyClaims() {
               <div>
                 <h1>{headline(selected, patient)}</h1>
                 <p className="lead">
-                  Claim {claimLabel(selected)} at {providerName(selected.providerId)} · {formatINR(selected.amount)} · submitted{' '}
-                  {formatWhen(selected.createdAt).toLowerCase()}
+                  Claim {claimLabel(selected)} · {treatmentName(selected)} at {providerName(selected.providerId)} ·{' '}
+                  {formatINR(selected.amount)} · submitted {formatWhen(selected.createdAt).toLowerCase()}
+                  {selected.type === 'CASHLESS' && ' · cashless, raised by the hospital'}
+                  {selected.admissionDate && ` · stay ${formatDate(selected.admissionDate)}${selected.dischargeDate ? ` – ${formatDate(selected.dischargeDate)}` : ''}`}
                 </p>
               </div>
               <div className="card tracker-card">
                 <ClaimTracker claim={selected} providerName={providerName(selected.providerId)} notifications={notifications} />
               </div>
               <NextStep claim={selected} providerName={providerName(selected.providerId)} />
+              {selected.status === 'INFO_REQUESTED' && <ReplyBox claim={selected} onReplied={() => load(true)} />}
+              {selected.reviewNotes?.length > 0 && (
+                <section className="card">
+                  <h2 className="card-title">Messages with the claims team</h2>
+                  <ReviewThread notes={selected.reviewNotes} />
+                </section>
+              )}
             </>
           )}
         </section>
@@ -211,6 +225,8 @@ function announceChanges(claimList, messageList, lastStatuses, seenMessages) {
         toast({ type: 'success', title: `Claim ${claimLabel(claim)} paid`, message: `${formatINR(claim.amount)} has been paid to the hospital.` });
       } else if (claim.status === 'REJECTED') {
         toast({ type: 'error', title: `Claim ${claimLabel(claim)} not approved`, message: claim.reason });
+      } else if (claim.status === 'INFO_REQUESTED') {
+        toast({ type: 'warning', title: `Claim ${claimLabel(claim)} needs information`, message: claim.reason });
       }
     });
   }
@@ -241,6 +257,10 @@ function headline(claim, patient) {
       return `Hi ${name}, this claim is fully paid`;
     case 'REJECTED':
       return `Hi ${name}, this claim wasn't approved`;
+    case 'UNDER_REVIEW':
+      return `Hi ${name}, our team is reviewing your claim`;
+    case 'INFO_REQUESTED':
+      return `Hi ${name}, we need a little more information`;
     default:
       return `Hi ${name}`;
   }
@@ -256,6 +276,10 @@ function detailLine(claim) {
       return `${formatWhen(claim.paidAt)} · paid to hospital`;
     case 'REJECTED':
       return claim.reason;
+    case 'UNDER_REVIEW':
+      return 'With a claims officer';
+    case 'INFO_REQUESTED':
+      return 'Waiting for your reply';
     default:
       return '';
   }
@@ -278,13 +302,19 @@ function NextStep({ claim, providerName }) {
       }. There's nothing more you need to do.`;
       break;
     case 'REJECTED':
-      text = `${claim.reason}. ${advice(claim.reason)}`;
+      text = `${claim.reason.replace(/\.+$/, '')}. ${advice(claim.reason)}`;
+      break;
+    case 'UNDER_REVIEW':
+      text = 'Some claims get a quick manual check by our claims team. Most are decided within a day, and you’ll get an email as soon as it’s done. Nothing is needed from you right now.';
+      break;
+    case 'INFO_REQUESTED':
+      text = 'Please answer the question below. The review continues as soon as you reply.';
       break;
     default:
       return null;
   }
   return (
-    <div className={`callout${claim.status === 'REJECTED' ? ' callout-warning' : ''}`}>
+    <div className={`callout${claim.status === 'REJECTED' || claim.status === 'INFO_REQUESTED' ? ' callout-warning' : ''}`}>
       <strong>{claim.status === 'REJECTED' ? 'Why: ' : 'What happens next: '}</strong>
       {text}
     </div>

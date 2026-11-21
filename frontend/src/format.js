@@ -48,3 +48,28 @@ export const claimLabel = (claim) => claim?.claimNumber ?? `#${claim?.id}`;
 
 /** Same for a notification, which carries claimNumber and claimId. */
 export const notificationClaimLabel = (n) => n?.claimNumber ?? `#${n?.claimId}`;
+
+export const ROLE_NAMES = { POLICYHOLDER: 'Policyholder', HOSPITAL: 'Hospital', OFFICER: 'Claims officer', ADMIN: 'Admin' };
+
+/** Treatments a claim can be for (ICD-10). The same list is used by policyholders and hospitals. */
+export const TREATMENTS = [
+  { code: 'I21', label: 'Heart attack' },
+  { code: 'I63', label: 'Stroke' },
+  { code: 'J18', label: 'Pneumonia' },
+  { code: 'K35', label: 'Appendicitis' },
+  { code: 'K80', label: 'Gallstones' },
+  { code: 'S72', label: 'Hip / thigh fracture' },
+  { code: 'H25', label: 'Cataract' },
+  { code: 'N20', label: 'Kidney stone' },
+  { code: 'A90', label: 'Dengue fever' },
+  { code: 'A01', label: 'Typhoid' },
+  { code: 'E11', label: 'Type 2 diabetes care' },
+  { code: 'O80', label: 'Childbirth' },
+  { code: 'M17', label: 'Knee replacement' },
+  { code: 'C50', label: 'Breast cancer' },
+];
+
+export const treatmentName = (claim) =>
+  claim?.treatment ?? TREATMENTS.find((t) => claim?.diagnosisCode?.startsWith(t.code))?.label ?? claim?.diagnosisCode;
+
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

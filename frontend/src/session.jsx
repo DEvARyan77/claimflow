@@ -1,44 +1,88 @@
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-// Demo "sign in": we only remember which patient you picked. No passwords.
-const STORAGE_KEY = 'claimflow.patientId';
+/**
+ * The signed-in user: { token, user } from POST /auth/login, kept in localStorage.
+ * The token is a JWT; when it expires (or the API says 401) the user is signed out.
+ */
+const STORAGE_KEY = 'claimflow.auth';
+export const SIGNED_OUT_EVENT = 'claimflow:signed-out';
 const SessionContext = createContext(null);
 
-function readStoredId() {
+function tokenExpired(token) {
   try {
-    const value = window.localStorage.getItem(STORAGE_KEY);
-    return value || null;   // MongoDB ids are strings, e.g. "673f1c2a9b..."
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' && payload.exp * 1000 < Date.now();
   } catch {
-    return null;
+    return true;
+  }
+}
+
+function readStored() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
+    if (saved?.token && saved?.user && !tokenExpired(saved.token)) return saved;
+  } catch {
+    // corrupted or blocked storage: signed out
+  }
+  return null;
+}
+
+/** For api.js, which runs outside React. */
+export function currentToken() {
+  return readStored()?.token ?? null;
+}
+
+function store(value) {
+  try {
+    if (value) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    else window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // storage unavailable (private mode): the session lasts until the page reloads
   }
 }
 
 export function SessionProvider({ children }) {
-  const [patientId, setPatientId] = useState(readStoredId);
+  const [auth, setAuth] = useState(readStored);
 
-  const signIn = useCallback((id) => {
-    setPatientId(id);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, String(id));
-    } catch {
-      // storage unavailable (private mode); the choice lasts until the page reloads
-    }
+  const signIn = useCallback((loginResponse) => {
+    store(loginResponse);
+    setAuth(loginResponse);
   }, []);
 
   const signOut = useCallback(() => {
-    setPatientId(null);
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    store(null);
+    setAuth(null);
+  }, []);
+
+  /** After editing the profile: keep the token, replace the user. */
+  const updateUser = useCallback((user) => {
+    setAuth((current) => {
+      if (!current) return current;
+      const next = { ...current, user };
+      store(next);
+      return next;
+    });
+  }, []);
+
+  // api.js fires this when the server says the login is no longer valid
+  useEffect(() => {
+    const onSignedOut = () => setAuth(null);
+    window.addEventListener(SIGNED_OUT_EVENT, onSignedOut);
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, onSignedOut);
   }, []);
 
   return (
-    <SessionContext.Provider value={{ patientId, signIn, signOut }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ token: auth?.token ?? null, user: auth?.user ?? null, signIn, signOut, updateUser }}>
+      {children}
+    </SessionContext.Provider>
   );
 }
 
 export function useSession() {
   return useContext(SessionContext);
+}
+
+export function signOutEverywhere() {
+  store(null);
+  window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
 }

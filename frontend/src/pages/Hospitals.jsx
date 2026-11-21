@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
+import AddHospital from './admin/AddHospital.jsx';
 import { api } from '../api.js';
 import { SearchIcon } from '../components/Icons.jsx';
 
@@ -8,6 +9,8 @@ export default function Hospitals() {
   const [query, setQuery] = useState('');
   const [networkOnly, setNetworkOnly] = useState(false);
   const [error, setError] = useState(null);
+  const { user } = useOutletContext();
+  const isAdmin = user.role === 'ADMIN';
 
   useEffect(() => {
     api
@@ -58,6 +61,8 @@ export default function Hospitals() {
       {providers === null && !error && <p className="muted">Loading hospitals…</p>}
       {providers && visible.length === 0 && <p className="muted">No hospitals match your search.</p>}
 
+      {isAdmin && <AddHospital onAdded={(p) => setProviders((list) => [...(list ?? []), p])} />}
+
       <div className="hospital-grid">
         {visible.map((p) => (
           <article key={p.id} className="card hospital-card">
@@ -77,7 +82,7 @@ export default function Hospitals() {
                 <li key={s}>{s}</li>
               ))}
             </ul>
-            {p.inNetwork && (
+            {p.inNetwork && user.role === 'POLICYHOLDER' && (
               <Link to={`/new?provider=${p.id}`} className="btn btn-secondary">
                 Claim for treatment here
               </Link>

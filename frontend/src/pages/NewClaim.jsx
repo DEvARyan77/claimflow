@@ -1,21 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
-import { formatINR, claimLabel } from '../format.js';
+import { formatINR, claimLabel, TREATMENTS } from '../format.js';
+import DatePicker, { addDays, todayIso } from '../components/DatePicker.jsx';
 import { defaultDocumentFor } from '../policyDocs.js';
 import AnswerCard from '../components/AnswerCard.jsx';
 import ClaimChat from '../components/ClaimChat.jsx';
 import { toast } from '../toast.jsx';
 
-const DIAGNOSES = [
-  { code: 'I21', label: 'Heart attack' },
-  { code: 'J18', label: 'Pneumonia' },
-  { code: 'S72', label: 'Hip / thigh fracture' },
-  { code: 'K35', label: 'Appendicitis' },
-  { code: 'A90', label: 'Dengue fever' },
-  { code: 'N20', label: 'Kidney stone' },
-  { code: 'E11', label: 'Type 2 diabetes care' },
-];
+const DIAGNOSES = TREATMENTS;
 
 export default function NewClaim() {
   const { patient, refreshPatient } = useOutletContext();
@@ -26,6 +19,8 @@ export default function NewClaim() {
   const [diagnosisCode, setDiagnosisCode] = useState('I21');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [admissionDate, setAdmissionDate] = useState('');
+  const [dischargeDate, setDischargeDate] = useState('');
   const [extraEmail, setExtraEmail] = useState('');
   const [showExtraEmail, setShowExtraEmail] = useState(false);
   const [errors, setErrors] = useState({});
@@ -66,6 +61,9 @@ export default function NewClaim() {
     const value = Number(amount);
     if (!amount) next.amount = 'Enter the bill amount.';
     else if (!Number.isFinite(value) || value <= 0) next.amount = 'Enter an amount greater than 0.';
+    if (!admissionDate) next.admissionDate = 'Choose the day you were admitted.';
+    if (!dischargeDate) next.dischargeDate = 'Choose the day you went home.';
+    else if (admissionDate && dischargeDate < admissionDate) next.dischargeDate = 'This is before the admission date.';
     if (extraEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extraEmail.trim())) {
       next.extraEmail = 'Enter a valid email, or leave it empty.';
     }
@@ -101,6 +99,9 @@ export default function NewClaim() {
         patientId: patient.id,
         providerId,
         diagnosisCode,
+        treatment: diagnosis?.label ?? null,
+        admissionDate,
+        dischargeDate,
         description: description.trim() || null,
         amount: Number(amount),
         extraEmail: extraEmail.trim() || null,
@@ -109,6 +110,8 @@ export default function NewClaim() {
         toast({ type: 'success', title: `Claim ${claimLabel(claim)} approved`, message: `${formatINR(claim.amount)} will be paid to ${chosen?.name ?? 'the hospital'}.` });
       } else if (claim.status === 'REJECTED') {
         toast({ type: 'error', title: `Claim ${claimLabel(claim)} not approved`, message: claim.reason });
+      } else if (claim.status === 'UNDER_REVIEW') {
+        toast({ type: 'info', title: `Claim ${claimLabel(claim)} received 🕵️`, message: 'Our claims team will take a quick look. We’ll email you when it’s decided.' });
       } else {
         toast({ type: 'info', title: `Claim ${claimLabel(claim)} submitted`, message: 'We’re still verifying it. You’ll get an update shortly.' });
       }
@@ -176,6 +179,30 @@ export default function NewClaim() {
               ))}
             </select>
             {errors.diagnosis && <p className="field-error">{errors.diagnosis}</p>}
+          </div>
+
+          <div className="field-row">
+            <div className="field">
+              <label htmlFor="admitted">Admitted on</label>
+              <DatePicker id="admitted" value={admissionDate} max={todayIso()} min={addDays(todayIso(), -365)}
+                invalid={Boolean(errors.admissionDate)}
+                onChange={(v) => {
+                  setAdmissionDate(v);
+                  if (dischargeDate && v && dischargeDate < v) setDischargeDate('');
+                  setErrors((err) => ({ ...err, admissionDate: undefined }));
+                }} />
+              {errors.admissionDate && <p className="field-error">{errors.admissionDate}</p>}
+            </div>
+            <div className="field">
+              <label htmlFor="discharged">Went home on</label>
+              <DatePicker id="discharged" value={dischargeDate} min={admissionDate || addDays(todayIso(), -365)} max={todayIso()}
+                invalid={Boolean(errors.dischargeDate)}
+                onChange={(v) => {
+                  setDischargeDate(v);
+                  setErrors((err) => ({ ...err, dischargeDate: undefined }));
+                }} />
+              {errors.dischargeDate && <p className="field-error">{errors.dischargeDate}</p>}
+            </div>
           </div>
 
           <div className="field">

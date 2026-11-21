@@ -20,6 +20,18 @@ export function buildSteps(claim, providerName, notifications) {
     },
   ];
 
+  // Claims the fraud check sent to an officer get an extra "Review" step
+  const inReview = status === 'UNDER_REVIEW' || status === 'INFO_REQUESTED';
+  const reviewed = (claim.reviewNotes ?? []).some((n) => n.action === 'APPROVE' || n.action === 'REJECT');
+  if (inReview || reviewed) {
+    steps.push({
+      key: 'review',
+      label: status === 'INFO_REQUESTED' ? 'Info needed' : 'Review',
+      state: inReview ? (status === 'INFO_REQUESTED' ? 'waiting' : 'current') : 'done',
+      note: status === 'INFO_REQUESTED' ? 'Waiting for your reply' : inReview ? 'A claims officer is checking it' : 'Checked by the claims team',
+    });
+  }
+
   if (status === 'REJECTED') {
     const notified = notificationFor('REJECTED');
     steps.push(
@@ -39,8 +51,8 @@ export function buildSteps(claim, providerName, notifications) {
     {
       key: 'decision',
       label: 'Approved',
-      state: status === 'SUBMITTED' ? 'todo' : 'done',
-      note: status === 'SUBMITTED' ? 'Waiting for verification' : formatWhen(claim.decidedAt),
+      state: status === 'SUBMITTED' || inReview ? 'todo' : 'done',
+      note: status === 'SUBMITTED' ? 'Waiting for verification' : inReview ? 'After the review' : formatWhen(claim.decidedAt),
     },
     {
       key: 'payment',
@@ -69,18 +81,19 @@ export default function ClaimTracker({ claim, providerName, notifications }) {
   return (
     <ol className="tracker" aria-label={`Progress of claim ${claimLabel(claim)}`}>
       {steps.map((step) => (
-        <li key={step.key} className={`tracker-step is-${step.state}`} aria-current={step.state === 'current' ? 'step' : undefined}>
+        <li key={step.key} className={`tracker-step is-${step.state}`} aria-current={step.state === 'current' || step.state === 'waiting' ? 'step' : undefined}>
           <span className="tracker-bar" aria-hidden="true" />
           <span className="tracker-head">
             <span className="tracker-dot" aria-hidden="true">
               {step.state === 'done' && <CheckIcon />}
               {step.state === 'failed' && <CrossIcon />}
+              {step.state === 'waiting' && <span aria-hidden="true">!</span>}
             </span>
             <span className="tracker-label">{step.label}</span>
           </span>
           <span className="tracker-note">{step.note}</span>
           <span className="visually-hidden">
-            {step.state === 'done' ? '(completed)' : step.state === 'current' ? '(in progress)' : step.state === 'failed' ? '(failed)' : '(not started)'}
+            {step.state === 'done' ? '(completed)' : step.state === 'current' ? '(in progress)' : step.state === 'waiting' ? '(waiting for you)' : step.state === 'failed' ? '(failed)' : '(not started)'}
           </span>
         </li>
       ))}
