@@ -30,6 +30,14 @@ export default function GoogleButton({ onSignedIn, onError }) {
     api.socialConfig().then((c) => setClientId(c?.google ?? null)).catch(() => setClientId(null));
   }, []);
 
+  // Re-draw Google's button when the light/dark theme changes, so it always matches the page
+  const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark');
+  useEffect(() => {
+    const watch = new MutationObserver(() => setDark(document.documentElement.dataset.theme === 'dark'));
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => watch.disconnect();
+  }, []);
+
   useEffect(() => {
     if (!clientId || !box.current) return;
     let cancelled = false;
@@ -52,14 +60,14 @@ export default function GoogleButton({ onSignedIn, onError }) {
           },
         });
         const width = Math.min(box.current.offsetWidth || 320, 400);
-        const dark = document.documentElement.dataset.theme === 'dark';
+        box.current.innerHTML = '';
         window.google.accounts.id.renderButton(box.current, { theme: dark ? 'filled_black' : 'outline', size: 'large', text: 'continue_with', shape: 'pill', width });
       })
       .catch((e) => onError?.(e.message));
     return () => {
       cancelled = true;
     };
-  }, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clientId, dark]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!clientId) return null;
   return (
